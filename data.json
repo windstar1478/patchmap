@@ -1,0 +1,515 @@
+{
+  "_comment": "단위는 전부 mm, 무게는 kg. verified=true는 제조사/유통사 스펙으로 확인된 값, false는 추정값이므로 실측 후 교체할 것.",
+
+  "desk": {
+    "model": "데스커 모션데스크 프리미엄 1800x800",
+    "w": 1800,
+    "d": 800,
+    "thickness": 25,
+    "hMin": 630,
+    "hMax": 1280,
+    "loadCapKg": 100,
+    "loadCapDistributedKg": 130,
+    "legInset": 110,
+    "legW": 60,
+    "verified": true,
+    "notes": "높이범위·하중은 사용자 제공. 상판은 가공목(파티클보드+LPM시트) — 하부 나사 체결 시 유지력 주의."
+  },
+
+  "connectorTypes": {
+    "usb":   { "label": "USB",        "color": "#4a7fb5" },
+    "hdmi":  { "label": "HDMI",       "color": "#3f9e8f" },
+    "dp":    { "label": "DisplayPort","color": "#2fb8c9" },
+    "rca":   { "label": "RCA",        "color": "#c8453a" },
+    "trs":   { "label": "3.5/6.35mm", "color": "#5ea89a" },
+    "xlr":   { "label": "XLR",        "color": "#8b6fc9" },
+    "ts":    { "label": "TS(악기)",    "color": "#d9a441" },
+    "spdif": { "label": "광출력",      "color": "#9aa0a6" }
+  },
+
+  "devices": [
+    {
+      "id": "pc",
+      "name": "PC 본체 (잘만 P50 DS)",
+      "category": "compute",
+      "dims": { "w": 240, "d": 480, "h": 512 },
+      "mount": "floor",
+      "pos": { "x": 1320, "z": 500, "yOff": 80 },
+      "weightKg": 14,
+      "verified": true,
+      "notes": "케이스 공중량 10.5kg + 부품. 전면·좌측 랩어라운드 강화유리, 우측 메쉬. yOff는 바퀴 받침대 높이(추정 80).",
+      "specs": {
+        "cpu": "라이젠 7500F",
+        "gpu": "RTX 4070 Super (COLORFUL)",
+        "board": "MSI B850M 박격포",
+        "ram": "32GB"
+      },
+      "ports": [
+        { "id": "pc-dp1",  "label": "GPU DP #1",       "type": "dp",   "dir": "out" },
+        { "id": "pc-dp2",  "label": "GPU DP #2",       "type": "dp",   "dir": "out" },
+        { "id": "pc-dp3",  "label": "GPU DP #3",       "type": "dp",   "dir": "out" },
+        { "id": "pc-hdmi", "label": "GPU HDMI",        "type": "hdmi", "dir": "out" },
+        { "id": "pc-ua1",  "label": "USB-A 10G #1",    "type": "usb",  "dir": "out" },
+        { "id": "pc-ua2",  "label": "USB-A 10G #2",    "type": "usb",  "dir": "out" },
+        { "id": "pc-ua3",  "label": "USB-A 10G #3",    "type": "usb",  "dir": "out" },
+        { "id": "pc-ua4",  "label": "USB-A 5G #1",     "type": "usb",  "dir": "out" },
+        { "id": "pc-ua5",  "label": "USB-A 5G #2",     "type": "usb",  "dir": "out" },
+        { "id": "pc-ua6",  "label": "USB-A 5G #3",     "type": "usb",  "dir": "out" },
+        { "id": "pc-ua7",  "label": "USB-A 5G #4",     "type": "usb",  "dir": "out" },
+        { "id": "pc-uc1",  "label": "USB-C 20G",       "type": "usb",  "dir": "out" },
+        { "id": "pc-uc2",  "label": "USB-C 10G",       "type": "usb",  "dir": "out" },
+        { "id": "pc-line", "label": "보드 사운드 아웃", "type": "trs",  "dir": "out" },
+        { "id": "pc-mic",  "label": "보드 마이크 IN",   "type": "trs",  "dir": "in"  },
+        { "id": "pc-opt",  "label": "보드 광출력",      "type": "spdif","dir": "out" }
+      ]
+    },
+    {
+      "id": "monitor",
+      "name": "모니터 LG 32GR75Q",
+      "category": "display",
+      "dims": { "w": 714, "d": 55, "h": 425 },
+      "mount": "desktop",
+      "pos": { "x": 900, "z": 650, "yOff": 200 },
+      "weightKg": 6.5,
+      "verified": false,
+      "notes": "패널 치수는 32인치 QHD 기준 추정. 모니터암 사용 중이라 yOff는 암 높이에 따라 가변. 무게 추정.",
+      "ports": [
+        { "id": "mon-dp",    "label": "DP IN",          "type": "dp",   "dir": "in"  },
+        { "id": "mon-hdmi1", "label": "HDMI IN #1",     "type": "hdmi", "dir": "in"  },
+        { "id": "mon-hdmi2", "label": "HDMI IN #2",     "type": "hdmi", "dir": "in"  },
+        { "id": "mon-usbb",  "label": "USB-B 업스트림",  "type": "usb",  "dir": "in"  },
+        { "id": "mon-ua1",   "label": "USB-A 허브 #1",  "type": "usb",  "dir": "out" },
+        { "id": "mon-ua2",   "label": "USB-A 허브 #2",  "type": "usb",  "dir": "out" },
+        { "id": "mon-hp",    "label": "헤드폰 아웃",     "type": "trs",  "dir": "out" }
+      ]
+    },
+    {
+      "id": "arm",
+      "name": "모니터암",
+      "category": "furniture",
+      "dims": { "w": 60, "d": 60, "h": 200 },
+      "mount": "desktop",
+      "pos": { "x": 900, "z": 760, "yOff": 0 },
+      "weightKg": 3.5,
+      "verified": false,
+      "notes": "책상 뒤쪽 클램프. 무게·치수 추정.",
+      "ports": []
+    },
+    {
+      "id": "stand",
+      "name": "데스커 모니터받침대 2.0 (W1000, 고속무선충전+USB허브)",
+      "category": "accessory",
+      "dims": { "w": 1000, "d": 220, "h": 90 },
+      "mount": "desktop",
+      "pos": { "x": 900, "z": 660, "yOff": 0 },
+      "weightKg": 2.4,
+      "verified": true,
+      "notes": "W600/W1000 두 종류. 1800 책상이므로 W1000으로 가정 — 실물 확인 필요. 무선충전 15W, 데이터 10Gbps. 업스트림 커넥터가 USB-A인지 USB-C인지 미확인.",
+      "ports": [
+        { "id": "st-up",   "label": "업스트림 → PC (타입 미확인)", "type": "usb", "dir": "in"  },
+        { "id": "st-d1",   "label": "데이터 #1",  "type": "usb", "dir": "out" },
+        { "id": "st-d2",   "label": "데이터 #2",  "type": "usb", "dir": "out" },
+        { "id": "st-d3",   "label": "데이터 #3",  "type": "usb", "dir": "out" },
+        { "id": "st-pd",   "label": "PD 충전",    "type": "usb", "dir": "out" },
+        { "id": "st-pwr",  "label": "전원 USB-C", "type": "usb", "dir": "in"  }
+      ]
+    },
+    {
+      "id": "pad",
+      "name": "무선충전 패드 (받침대 내장, 좌측)",
+      "category": "accessory",
+      "dims": { "w": 110, "d": 110, "h": 12 },
+      "mount": { "on": "stand" },
+      "pos": { "x": 560, "z": 660, "yOff": 0 },
+      "weightKg": 0,
+      "verified": false,
+      "notes": "받침대 상면 좌측. 15W.",
+      "ports": []
+    },
+    {
+      "id": "itf",
+      "name": "오디오 인터페이스 (포커스라이트 스칼렛 2i2 4세대)",
+      "category": "audio",
+      "dims": { "w": 175, "d": 100, "h": 48 },
+      "mount": "desktop",
+      "pos": { "x": 1190, "z": 660, "yOff": 0 },
+      "weightKg": 0.6,
+      "verified": true,
+      "notes": "받침대(높이 90) 아래 배치. 전면 잭 사용 시 같은 채널 XLR 비활성화. 팬텀 48V는 두 XLR 공통, 개별 제어 불가. 게인 최대 69dB. Monitor Out과 헤드폰 OUT은 같은 신호를 공유.",
+      "ports": [
+        { "id": "itf-in1",  "label": "전면 잭 IN 1 (기타/라인)", "type": "ts",  "dir": "in",  "conflictsWith": ["itf-xlr1"] },
+        { "id": "itf-in2",  "label": "전면 잭 IN 2 (기타/라인)", "type": "ts",  "dir": "in",  "conflictsWith": ["itf-xlr2"] },
+        { "id": "itf-xlr1", "label": "후면 XLR IN 1",           "type": "xlr", "dir": "in",  "conflictsWith": ["itf-in1"] },
+        { "id": "itf-xlr2", "label": "후면 XLR IN 2",           "type": "xlr", "dir": "in",  "conflictsWith": ["itf-in2"] },
+        { "id": "itf-usb",  "label": "USB-C → PC",              "type": "usb", "dir": "in"  },
+        { "id": "itf-outL", "label": "Monitor Out L (TRS 균형)", "type": "trs", "dir": "out" },
+        { "id": "itf-outR", "label": "Monitor Out R (TRS 균형)", "type": "trs", "dir": "out" },
+        { "id": "itf-hp",   "label": "헤드폰 OUT",              "type": "trs", "dir": "out" }
+      ]
+    },
+    {
+      "id": "spkL",
+      "name": "스피커 좌 (에디파이어 MR4, 액티브)",
+      "category": "audio",
+      "dims": { "w": 140, "d": 197.5, "h": 228 },
+      "mount": "desktop",
+      "pos": { "x": 95, "z": 660, "yOff": 0 },
+      "weightKg": 2.3,
+      "verified": true,
+      "notes": "TRS/RCA/AUX 세 입력 동시 사용 가능(하드웨어 믹싱). 전면 헤드폰 잭은 스피커를 뮤트시킴. 페어 총중량 4.5kg. 액티브 깊이 197.5, 패시브 184.",
+      "ports": [
+        { "id": "spk-trsL", "label": "TRS IN L (균형)",  "type": "trs", "dir": "in"  },
+        { "id": "spk-trsR", "label": "TRS IN R (균형)",  "type": "trs", "dir": "in"  },
+        { "id": "spk-rcaL", "label": "RCA IN L",         "type": "rca", "dir": "in"  },
+        { "id": "spk-rcaR", "label": "RCA IN R",         "type": "rca", "dir": "in"  },
+        { "id": "spk-aux",  "label": "AUX IN (3.5mm)",   "type": "trs", "dir": "in"  },
+        { "id": "spk-hp",   "label": "전면 헤드폰 OUT",   "type": "trs", "dir": "out" },
+        { "id": "spk-pwr",  "label": "전원",             "type": "power","dir": "in" }
+      ]
+    },
+    {
+      "id": "spkR",
+      "name": "스피커 우 (에디파이어 MR4, 패시브)",
+      "category": "audio",
+      "dims": { "w": 140, "d": 184, "h": 228 },
+      "mount": "desktop",
+      "pos": { "x": 1705, "z": 660, "yOff": 0 },
+      "weightKg": 2.2,
+      "verified": true,
+      "notes": "패시브. 액티브에서 스피커 케이블로 연결됨 — 자체 입력 없음.",
+      "ports": []
+    },
+    {
+      "id": "hpstand",
+      "name": "헤드폰 거치대 (2구)",
+      "category": "accessory",
+      "dims": { "w": 210, "d": 150, "h": 300 },
+      "mount": { "on": "spkR" },
+      "pos": { "x": 1705, "z": 660, "yOff": 0 },
+      "weightKg": 1.4,
+      "verified": false,
+      "notes": "우측 스피커 위. 치수·무게 추정.",
+      "ports": []
+    },
+    {
+      "id": "hd600",
+      "name": "헤드폰 젠하이저 HD-600",
+      "category": "audio",
+      "dims": { "w": 180, "d": 100, "h": 200 },
+      "mount": { "on": "hpstand" },
+      "pos": { "x": 1705, "z": 660, "yOff": 0 },
+      "weightKg": 0.26,
+      "verified": false,
+      "notes": "300Ω 오픈형. 구동에 여유 있는 앰프 필요. 오픈형이라 소리 누출 → 마이크 선택에 영향.",
+      "ports": [
+        { "id": "hd-plug", "label": "6.35mm 플러그", "type": "trs", "dir": "in" }
+      ]
+    },
+    {
+      "id": "headset",
+      "name": "헤드셋 하이퍼엑스 클라우드알파 무선",
+      "category": "audio",
+      "dims": { "w": 180, "d": 100, "h": 200 },
+      "mount": { "on": "hpstand" },
+      "pos": { "x": 1705, "z": 660, "yOff": 0 },
+      "weightKg": 0.34,
+      "verified": true,
+      "notes": "2.4GHz USB 동글 전용. 3.5mm 입력 없음, 블루투스 없음 → 아날로그 믹싱 불가. 동글은 PC 또는 NS2 독 중 한 곳에만 연결 가능.",
+      "ports": [
+        { "id": "hs-dongle", "label": "USB 동글", "type": "usb", "dir": "out" }
+      ]
+    },
+    {
+      "id": "ns2",
+      "name": "Nintendo Switch 2 (본체)",
+      "category": "console",
+      "dims": { "w": 272, "d": 14, "h": 116 },
+      "mount": { "on": "dock" },
+      "pos": { "x": 790, "z": 660, "yOff": 0 },
+      "weightKg": 0.53,
+      "verified": false,
+      "notes": "상단 3.5mm 헤드폰잭 있음. 독 모드에서 정상 작동하는지 미확인 — 실기기 확인 필요. 블루투스 오디오 지원하나 블루투스 마이크 입력은 미지원. USB 오디오 헤드셋은 독 USB로 사용 가능(사용자 확인됨).",
+      "ports": [
+        { "id": "ns2-hp", "label": "3.5mm 헤드폰잭",   "type": "trs", "dir": "out" },
+        { "id": "ns2-uc", "label": "하단 USB-C → 독",  "type": "usb", "dir": "out" }
+      ]
+    },
+    {
+      "id": "dock",
+      "name": "NS2 독 (세로 배치)",
+      "category": "console",
+      "dims": { "w": 145, "d": 60, "h": 125 },
+      "mount": { "on": "stand" },
+      "pos": { "x": 790, "z": 660, "yOff": 0 },
+      "weightKg": 1.2,
+      "verified": false,
+      "notes": "받침대 상면, 무선충전 패드 오른쪽. 치수 추정 — 실측 필요. 어댑터 정격 60W이나 실소비는 15~20W.",
+      "ports": [
+        { "id": "dk-pwr",  "label": "전원 USB-C IN", "type": "usb",  "dir": "in"  },
+        { "id": "dk-hdmi", "label": "HDMI 출력",     "type": "hdmi", "dir": "out" },
+        { "id": "dk-ua1",  "label": "USB-A #1",      "type": "usb",  "dir": "out" },
+        { "id": "dk-ua2",  "label": "USB-A #2",      "type": "usb",  "dir": "out" }
+      ]
+    },
+    {
+      "id": "guitar",
+      "name": "기타 (스콰이어 스트라토캐스터)",
+      "category": "instrument",
+      "dims": { "w": 330, "d": 50, "h": 990 },
+      "mount": "floor",
+      "pos": { "x": 200, "z": 200, "yOff": 0 },
+      "weightKg": 3.6,
+      "verified": false,
+      "notes": "상시 연결 아님 — 연주할 때만 2i2 전면 잭에 연결. 치수·무게 추정.",
+      "ports": [
+        { "id": "gtr-out", "label": "출력 잭 (TS)", "type": "ts", "dir": "out" }
+      ]
+    },
+    {
+      "id": "strip",
+      "name": "멀티탭 (상판 하부 부착)",
+      "category": "power",
+      "dims": { "w": 340, "d": 70, "h": 55 },
+      "mount": "under-desktop",
+      "pos": { "x": 700, "z": 400, "yOff": -95 },
+      "weightKg": 0.6,
+      "verified": false,
+      "notes": "이미 상판 하부에 부착됨 → 상판 위 전원 기기들은 경계를 건너지 않음. 권장 6구 최소 / 8구. 어댑터 벽돌 간섭 때문에 소켓 간격 넓은 모델 필요.",
+      "ports": []
+    },
+    {
+      "id": "wall",
+      "name": "벽 콘센트 (책상 아래, 좌측 30% 지점)",
+      "category": "power",
+      "dims": { "w": 120, "d": 40, "h": 80 },
+      "mount": "fixed",
+      "pos": { "x": 540, "z": 790, "yOff": 250 },
+      "weightKg": 0,
+      "verified": false,
+      "notes": "구멍 2개 중 하나는 멀티탭, 다른 하나는 모션데스크 전원. 높이 추정.",
+      "ports": []
+    },
+    {
+      "id": "light",
+      "name": "모니터 조명",
+      "category": "accessory",
+      "dims": { "w": 500, "d": 85, "h": 40 },
+      "mount": { "on": "monitor" },
+      "pos": { "x": 900, "z": 640, "yOff": 0 },
+      "weightKg": 0.5,
+      "verified": false,
+      "notes": "모니터 상단 거치, USB-C 전원 전용(데이터 없음).",
+      "ports": [
+        { "id": "lt-pwr", "label": "USB-C (전원만)", "type": "usb", "dir": "in" }
+      ]
+    },
+    {
+      "id": "kbd",
+      "name": "키보드 aula f75 (무선)",
+      "category": "input",
+      "dims": { "w": 330, "d": 140, "h": 40 },
+      "mount": "desktop",
+      "pos": { "x": 800, "z": 250, "yOff": 0 },
+      "weightKg": 1.0,
+      "verified": false,
+      "notes": "75% 배열 추정 치수.",
+      "ports": []
+    },
+    {
+      "id": "mouse",
+      "name": "마우스 G PRO X SUPERLIGHT 2 (무선)",
+      "category": "input",
+      "dims": { "w": 63, "d": 125, "h": 40 },
+      "mount": "desktop",
+      "pos": { "x": 1080, "z": 250, "yOff": 0 },
+      "weightKg": 0.06,
+      "verified": true,
+      "ports": []
+    }
+  ],
+
+  "plannedDevices": [
+    {
+      "id": "mic",
+      "name": "마이크 (추가 예정 · 다이나믹 카디오이드 XLR 권장)",
+      "category": "audio",
+      "dims": { "w": 60, "d": 60, "h": 180 },
+      "mount": "desktop",
+      "pos": { "x": 1300, "z": 400, "yOff": 0 },
+      "weightKg": 0.4,
+      "notes": "권장 근거: HD-600 오픈형 누출 + 스피커 병용 + 방음 없는 방 → 콘덴서 부적합. 후보: 슈어 SM58 / 로데 PodMic / AT2040. SM7B는 게인 요구가 커서 비권장. 붐암·팝필터·XLR 케이블 별도 필요.",
+      "ports": [{ "id": "mic-out", "label": "XLR 출력", "type": "xlr", "dir": "out" }]
+    },
+    {
+      "id": "monitor2",
+      "name": "세로 모니터 (추가 예정)",
+      "category": "display",
+      "dims": { "w": 425, "d": 55, "h": 714 },
+      "mount": "desktop",
+      "pos": { "x": 1450, "z": 650, "yOff": 200 },
+      "weightKg": 5.0,
+      "notes": "GPU DP 여유 있음(레퍼런스 기준 DP 3 + HDMI 1). 컬러풀 특정 모델 포트 구성은 미확인.",
+      "ports": [
+        { "id": "m2-dp",   "label": "DP IN",   "type": "dp",   "dir": "in" },
+        { "id": "m2-hdmi", "label": "HDMI IN", "type": "hdmi", "dir": "in" }
+      ]
+    },
+    {
+      "id": "midikbd",
+      "name": "마스터키보드 (추가 예정)",
+      "category": "instrument",
+      "dims": { "w": 850, "d": 260, "h": 90 },
+      "mount": "desktop",
+      "pos": { "x": 800, "z": 200, "yOff": 0 },
+      "weightKg": 5.0,
+      "notes": "USB MIDI 컨트롤러 → 2i2 오디오 입력을 점유하지 않음. USB 포트 1개만 사용. 진짜 제약은 책상 공간 — 49건반 약 800mm, 61건반 약 1000mm. 키보드 트레이/슬라이드 레일 사전 검토 권장.",
+      "ports": [{ "id": "mk-usb", "label": "USB → PC (MIDI)", "type": "usb", "dir": "out" }]
+    },
+    {
+      "id": "capture",
+      "name": "캡처카드 (후순위)",
+      "category": "video",
+      "dims": { "w": 100, "d": 60, "h": 20 },
+      "mount": "desktop",
+      "pos": { "x": 1000, "z": 700, "yOff": 0 },
+      "weightKg": 0.15,
+      "notes": "디스코드 화면공유에는 필수(대안 없음). 통화만 할 때는 불필요. 조건: HDMI IN + 패스스루 OUT + USB 출력. USB는 허브 말고 메인보드 직결. 캡처 오디오는 수십 ms 지연 → 패스스루 영상과 어긋남.",
+      "ports": [
+        { "id": "cap-in",   "label": "HDMI IN",         "type": "hdmi", "dir": "in"  },
+        { "id": "cap-thru", "label": "HDMI 패스스루 OUT","type": "hdmi", "dir": "out" },
+        { "id": "cap-usb",  "label": "USB → PC",        "type": "usb",  "dir": "out" }
+      ]
+    },
+    {
+      "id": "monctrl",
+      "name": "모니터 컨트롤러 (작곡 시작 시점에 검토)",
+      "category": "audio",
+      "dims": { "w": 140, "d": 120, "h": 60 },
+      "mount": "desktop",
+      "pos": { "x": 1300, "z": 300, "yOff": 0 },
+      "weightKg": 0.8,
+      "notes": "입력 2개 이상 + 스피커/헤드폰 전환 + 헤드폰 앰프 내장 + 뮤트 + 모노체크. MR4 전면 잭이 HD-600(300Ω)을 못 울리면 우선순위가 올라감.",
+      "ports": [
+        { "id": "mc-aL", "label": "입력 A L", "type": "trs", "dir": "in"  },
+        { "id": "mc-aR", "label": "입력 A R", "type": "trs", "dir": "in"  },
+        { "id": "mc-bL", "label": "입력 B L", "type": "rca", "dir": "in"  },
+        { "id": "mc-bR", "label": "입력 B R", "type": "rca", "dir": "in"  },
+        { "id": "mc-spL","label": "스피커 OUT L", "type": "trs", "dir": "out" },
+        { "id": "mc-spR","label": "스피커 OUT R", "type": "trs", "dir": "out" },
+        { "id": "mc-hp", "label": "헤드폰 OUT",   "type": "trs", "dir": "out" }
+      ]
+    }
+  ],
+
+  "cables": [
+    { "id": "c-pwr-pc",  "name": "PC 전원 → 멀티탭",       "from": "pc",     "to": "strip",     "type": "power", "lengthMm": 1800, "verified": false },
+    { "id": "c-dp-mon",  "name": "DP → 모니터",            "from": "pc-dp1", "to": "mon-dp",    "type": "dp",    "lengthMm": 1500, "verified": false },
+    { "id": "c-usb-itf", "name": "USB → 2i2",              "from": "pc-ua1", "to": "itf-usb",   "type": "usb",   "lengthMm": 1500, "verified": false },
+    { "id": "c-usb-mon", "name": "USB-B → 모니터 허브",     "from": "pc-ua2", "to": "mon-usbb",  "type": "usb",   "lengthMm": 1500, "verified": false },
+    { "id": "c-usb-st",  "name": "USB → 데스커 받침대",     "from": "pc-ua3", "to": "st-up",     "type": "usb",   "lengthMm": 1000, "verified": false },
+    { "id": "c-pwr-st",  "name": "멀티탭 전원 → 벽 콘센트", "from": "strip",  "to": "wall",      "type": "power", "lengthMm": 1500, "verified": false },
+    { "id": "c-hdmi-mon","name": "NS2 독 HDMI → 모니터",   "from": "dk-hdmi","to": "mon-hdmi1", "type": "hdmi",  "lengthMm": 1500, "verified": false },
+
+    { "id": "c-trsL", "name": "2i2 Monitor Out L → MR4 TRS L", "from": "itf-outL", "to": "spk-trsL", "type": "trs", "lengthMm": 3000, "planned": true,
+      "notes": "★ 미구매. 6.35mm TRS 균형 케이블. 기타/PC 소리를 스피커로 보내는 핵심 경로." },
+    { "id": "c-trsR", "name": "2i2 Monitor Out R → MR4 TRS R", "from": "itf-outR", "to": "spk-trsR", "type": "trs", "lengthMm": 3000, "planned": true,
+      "notes": "★ 미구매. 위와 동일." },
+    { "id": "c-ns2-rca", "name": "NS2 3.5mm → MR4 RCA", "from": "ns2-hp", "to": "spk-rcaL", "type": "rca", "lengthMm": 2000, "planned": true,
+      "notes": "★ 미구매. 3.5mm-2RCA 케이블. NS2 독 모드에서 3.5mm 작동 여부 확인 후 진행. 안 되면 HDMI 오디오 분리기로 대체." },
+
+    { "id": "c-hp-itf", "name": "HD-600 → 2i2 헤드폰 아웃", "from": "itf-hp", "to": "hd-plug", "type": "trs", "lengthMm": 3000, "verified": false,
+      "notes": "PC 전용 자리. 300Ω 구동 가능." },
+    { "id": "c-hp-spk", "name": "HD-600 → MR4 전면 헤드폰 잭", "from": "spk-hp", "to": "hd-plug", "type": "trs", "lengthMm": 3000, "alternative": true,
+      "notes": "NS2를 헤드폰으로 들을 때의 대체 자리. 스피커 자동 뮤트 + NS2/PC 믹스 청취 가능. MR4 앰프가 300Ω을 충분히 울리는지 미검증 — 최우선 테스트 항목." },
+
+    { "id": "c-mic",  "name": "마이크 → 2i2 XLR IN 2", "from": "mic-out", "to": "itf-xlr2", "type": "xlr", "lengthMm": 3000, "planned": true,
+      "notes": "XLR 2번인 이유: 기타가 전면 잭 1번을 쓰므로 채널 1이 죽는다. 2번이면 동시 사용 가능." },
+    { "id": "c-gtr",  "name": "기타 → 2i2 전면 잭 IN 1", "from": "gtr-out", "to": "itf-in1", "type": "ts", "lengthMm": 3000, "intermittent": true,
+      "notes": "연주할 때만 연결." },
+
+    { "id": "c-dongle-pc",   "name": "헤드셋 동글 → PC USB",   "from": "hs-dongle", "to": "pc-ua4", "type": "usb", "lengthMm": 0, "exclusiveWith": ["c-dongle-dock"] },
+    { "id": "c-dongle-dock", "name": "헤드셋 동글 → NS2 독 USB","from": "hs-dongle", "to": "dk-ua1", "type": "usb", "lengthMm": 0, "exclusiveWith": ["c-dongle-pc"] }
+  ],
+
+  "scenarios": [
+    {
+      "id": "all",
+      "name": "전체 배선",
+      "notes": [
+        "항상 꽂아두는 고정 배선. 아래 4개 상황은 케이블을 다시 꽂지 않고 전환된다.",
+        "예외 두 가지: 기타 케이블(연주할 때만), 헤드셋 동글(PC ↔ NS2 독 이동)."
+      ]
+    },
+    {
+      "id": "pc-game",
+      "name": "PC · 게이밍 / 전화",
+      "activeCables": ["c-pwr-pc","c-dp-mon","c-usb-itf","c-trsL","c-trsR","c-mic","c-dongle-pc"],
+      "notes": [
+        "헤드셋: 동글을 PC USB에. 윈도우 입출력을 클라우드알파로.",
+        "스피커+마이크: 윈도우 출력 2i2 → MR4 TRS. 마이크는 2i2 후면 XLR 2번.",
+        "주의: HD-600이 2i2 헤드폰 아웃에 꽂혀 있으면 스피커와 같은 소리가 동시에 난다."
+      ]
+    },
+    {
+      "id": "pc-music",
+      "name": "PC · 음악 / 기타 / 솔로 게임",
+      "activeCables": ["c-pwr-pc","c-dp-mon","c-usb-itf","c-trsL","c-trsR","c-hp-itf","c-gtr"],
+      "notes": [
+        "HD-600은 2i2 헤드폰 아웃. 300Ω을 제대로 구동할 수 있는 유일한 자리.",
+        "기타는 칠 때만 2i2 전면 잭 IN 1. Nolly X를 거친 소리가 헤드폰·스피커에 동일하게 나간다.",
+        "지연은 케이블이 아니라 DAW 버퍼 크기로 결정된다."
+      ]
+    },
+    {
+      "id": "ns2-game",
+      "name": "NS2 · 게이밍 + 디스코드 통화",
+      "activeCables": ["c-hdmi-mon","c-ns2-rca","c-usb-itf","c-trsL","c-trsR","c-mic"],
+      "notes": [
+        "권장: 스피커 + 마이크. NS2는 RCA로, 디스코드는 2i2 → TRS로 들어와 MR4가 하드웨어 믹싱.",
+        "전환 조작이 전혀 없음. MR4가 세 입력을 동시에 받는 게 이 구성의 핵심.",
+        "제약: 헤드셋으로는 불가. 동글이 PC와 독 중 한쪽에만 꽂히므로 두 소리를 동시에 못 듣는다.",
+        "헤드셋을 꼭 쓰려면 NS2 오디오를 PC로 끌어와야 하고, 캡처카드(영상 어긋남) 또는 분리기→2i2 라인(입력 2채널 전부 점유, 마이크 자리 없음) 중 하나를 감수해야 한다."
+      ]
+    },
+    {
+      "id": "ns2-music",
+      "name": "NS2 · 솔로 플레이",
+      "activeCables": ["c-hdmi-mon","c-ns2-rca","c-hp-spk"],
+      "notes": [
+        "스피커: NS2 → MR4 RCA. 아날로그라 지연 없음.",
+        "HD-600: MR4 전면 헤드폰 잭. 스피커 자동 뮤트.",
+        "MR4 헤드폰 앰프가 300Ω을 구동할지 미검증. 부족하면 모니터 컨트롤러가 정석 해결."
+      ]
+    }
+  ],
+
+  "power": {
+    "note": "220V. 멀티탭 정격 16A / 약 3520W 대비 여유가 크므로 전력은 제약이 아니다. 실제 제약은 구수와 어댑터 부피.",
+    "items": [
+      { "name": "PC (7500F + 4070S)",   "peakW": 400, "note": "파워 정격 750W는 순간 트랜지언트 대응용이지 소비량이 아님" },
+      { "name": "모니터 32GR75Q",        "peakW": 50 },
+      { "name": "MR4 스피커",            "peakW": 60,  "note": "평상시 15~20W" },
+      { "name": "NS2 독",                "peakW": 20,  "note": "어댑터 정격 60W, 실측 15~20W" },
+      { "name": "데스커 받침대 어댑터",   "peakW": 50 },
+      { "name": "세로 모니터 (예정)",     "peakW": 30 }
+    ],
+    "outletsNeededNow": 5,
+    "outletsRecommended": 8,
+    "warnings": [
+      "그라운드 루프: 2i2 ↔ MR4 아날로그 연결 시, PC와 스피커를 같은 멀티탭에 물릴 것. 다른 회로면 험 발생 가능.",
+      "NS2 어댑터와 데스커 어댑터가 벽돌형이라 옆 구를 가림 → 소켓 간격 넓은 모델 또는 회전형 필요.",
+      "겨울 전기히터(1500W)는 같은 회로에 물리지 말 것."
+    ]
+  },
+
+  "openQuestions": [
+    { "id": "q1", "q": "데스커 받침대 업스트림 커넥터가 USB-A인가 USB-C인가", "blocks": ["st-up"] },
+    { "id": "q2", "q": "NS2 3.5mm 헤드폰잭이 독 모드에서 정상 작동하는가", "blocks": ["c-ns2-rca"], "fallback": "HDMI 오디오 분리기로 대체" },
+    { "id": "q3", "q": "MR4 전면 헤드폰 잭이 HD-600(300Ω)을 충분히 구동하는가", "blocks": ["c-hp-spk"], "fallback": "모니터 컨트롤러 도입" },
+    { "id": "q4", "q": "데스커 받침대가 W600인가 W1000인가", "blocks": ["stand.dims.w"] },
+    { "id": "q5", "q": "컬러풀 4070S 특정 모델의 실제 출력 포트 구성", "blocks": ["pc.ports"] },
+    { "id": "q6", "q": "각 케이블의 실제 보유 길이 (전부 추정값)", "blocks": ["cables[].lengthMm"] },
+    { "id": "q7", "q": "엔산 CB-03 홀더높이 상한 510mm vs P50 512mm — 장착 가능 여부", "contact": "엔산마운트 02-707-0331" },
+    { "id": "q8", "q": "CB-03 체결 방식이 상판 타공인가 프레임 클램프인가", "note": "상판이 파티클보드라 인장 하중에 약함. 프레임 체결이 안전." }
+  ]
+}

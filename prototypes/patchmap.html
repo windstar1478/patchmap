@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>patchmap — 상황별 연결 경로</title>
+<style>
+:root{
+  --bg:#17181b; --panel:#232428; --panel-2:#2a2c31; --border:#34363b;
+  --text:#e9e6df; --muted:#8b8d93; --accent:#d99a3f; --warn:#c1443a; --ok:#5ea89a;
+  --c-usb:#4a7fb5; --c-hdmi:#3f9e8f; --c-dp:#2fb8c9; --c-rca:#c8453a;
+  --c-trs:#5ea89a; --c-xlr:#8b6fc9; --c-ts:#d9a441; --c-spdif:#9aa0a6;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--text);
+  font-family:'IBM Plex Sans KR',system-ui,-apple-system,sans-serif;height:100vh;overflow:hidden;}
+.app{display:flex;height:100vh;}
+.sidebar{width:280px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--border);
+  padding:18px 16px;overflow-y:auto;}
+.brand{font-size:13px;letter-spacing:.14em;color:var(--accent);font-family:ui-monospace,monospace;
+  text-transform:uppercase;margin-bottom:2px;}
+.brand-sub{font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.55;}
+.section-label{font-family:ui-monospace,monospace;font-size:11px;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.08em;margin:18px 0 8px;}
+.scn-btn{display:block;width:100%;text-align:left;background:var(--panel-2);
+  border:1px solid var(--border);color:var(--text);padding:10px 11px;border-radius:6px;
+  font-size:13px;margin-bottom:6px;cursor:pointer;font-family:inherit;line-height:1.4;}
+.scn-btn:hover{border-color:var(--accent);}
+.scn-btn.active{border-color:var(--accent);background:#33302a;}
+.scn-btn small{display:block;color:var(--muted);font-size:11px;margin-top:2px;}
+.preset-btn{display:block;width:100%;text-align:left;background:var(--panel-2);
+  border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:5px;
+  font-size:12px;margin-bottom:5px;cursor:pointer;font-family:inherit;}
+.preset-btn:hover{border-color:var(--accent);}
+.reset-btn{background:var(--accent);color:#1a1a1a;border:none;font-weight:600;border-radius:6px;
+  padding:9px;width:100%;cursor:pointer;font-size:13px;margin-bottom:4px;font-family:inherit;}
+.legend{margin-top:4px;font-size:11px;color:var(--muted);font-family:ui-monospace,monospace;}
+.legend div{display:flex;align-items:center;gap:6px;margin-bottom:4px;}
+.swatch{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.hint{font-size:11px;color:var(--muted);margin-top:12px;line-height:1.65;}
+
+.canvas-wrap{position:relative;flex:1;overflow:auto;
+  background:radial-gradient(circle,#24262b 1px,transparent 1px) 0 0/22px 22px,var(--bg);}
+.canvas{position:relative;width:1700px;height:1200px;}
+svg.cables{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;}
+svg.cables path{pointer-events:stroke;cursor:pointer;}
+
+.device{position:absolute;width:196px;background:var(--panel);border:1px solid var(--border);
+  border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.35);transition:opacity .18s;}
+.device.dim{opacity:.28;}
+.device-head{display:flex;justify-content:space-between;align-items:center;gap:6px;
+  padding:9px 10px;border-bottom:1px solid var(--border);cursor:grab;font-weight:600;font-size:12.5px;
+  line-height:1.3;}
+.device-head:active{cursor:grabbing;}
+.device-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;
+  line-height:1;flex-shrink:0;}
+.device-close:hover{color:var(--warn);}
+.ports{padding:7px 0;}
+.port{display:flex;align-items:center;gap:7px;font-size:11px;padding:3px 10px;
+  font-family:ui-monospace,monospace;color:var(--muted);line-height:1.3;}
+.port.out{flex-direction:row-reverse;text-align:right;justify-content:flex-end;}
+.port .plabel{flex:1;}
+.jack{width:11px;height:11px;border-radius:50%;border:2px solid var(--panel);cursor:pointer;
+  flex-shrink:0;box-shadow:0 0 0 1px var(--border);}
+.jack.active{outline:2px solid var(--accent);outline-offset:2px;}
+
+.log-wrap{position:absolute;right:16px;top:16px;width:330px;background:var(--panel);
+  border:1px solid var(--border);border-radius:8px;padding:13px;max-height:82vh;overflow-y:auto;}
+.log-title{font-family:ui-monospace,monospace;font-size:11px;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.08em;margin-bottom:9px;}
+.scn-head{font-size:14px;font-weight:600;margin-bottom:8px;}
+.step{font-size:12px;line-height:1.6;padding:7px 9px;border-radius:6px;background:var(--panel-2);
+  margin-bottom:6px;border-left:3px solid var(--ok);}
+.step.warn{border-left-color:var(--warn);}
+.step b{color:var(--text);}
+.log-item{font-size:11.5px;padding:6px 8px;border-radius:6px;background:var(--panel-2);
+  margin-bottom:5px;display:flex;justify-content:space-between;gap:6px;align-items:flex-start;
+  line-height:1.45;}
+.log-item.warn{border-left:3px solid var(--warn);}
+.log-item.ok{border-left:3px solid var(--ok);}
+.log-empty{color:var(--muted);font-size:12px;}
+.log-x{background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;flex-shrink:0;}
+.log-x:hover{color:var(--warn);}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="sidebar">
+    <div class="brand">patchmap</div>
+    <div class="brand-sub">상황을 고르면 그 상황에서 살아있는 경로만 남고 나머지는 흐려집니다. 포트를 클릭 → 다른 포트를 클릭하면 직접 연결도 가능합니다.</div>
+
+    <div class="section-label">상황 선택</div>
+    <button class="scn-btn" data-scn="all">전체 배선<small>항상 꽂아두는 고정 배선</small></button>
+    <button class="scn-btn" data-scn="pc-game">PC · 게이밍 / 전화<small>헤드셋 또는 스피커+마이크</small></button>
+    <button class="scn-btn" data-scn="pc-music">PC · 음악 / 기타 / 솔로<small>HD-600 또는 스피커</small></button>
+    <button class="scn-btn" data-scn="ns2-game">NS2 · 게이밍 / 전화<small>디스코드 통화 병행</small></button>
+    <button class="scn-btn" data-scn="ns2-music">NS2 · 솔로 플레이<small>HD-600 또는 스피커</small></button>
+
+    <div class="section-label">기기 추가</div>
+    <button class="preset-btn" data-preset="extractor">HDMI 오디오 분리기</button>
+    <button class="preset-btn" data-preset="capture">캡처카드</button>
+    <button class="preset-btn" data-preset="monitor2">세로 모니터</button>
+    <button class="preset-btn" data-preset="hub">데스커 허브</button>
+    <button class="preset-btn" data-preset="light">모니터 조명</button>
+    <button class="preset-btn" data-preset="midikbd">마스터키보드 (추가 예정)</button>
+    <button class="preset-btn" data-preset="monctrl">모니터 컨트롤러 (검토중)</button>
+
+    <div class="section-label">초기화</div>
+    <button class="reset-btn" id="reloadBtn">권장 배선 다시 불러오기</button>
+
+    <div class="section-label">커넥터</div>
+    <div class="legend">
+      <div><span class="swatch" style="background:var(--c-usb)"></span>USB</div>
+      <div><span class="swatch" style="background:var(--c-hdmi)"></span>HDMI</div>
+      <div><span class="swatch" style="background:var(--c-dp)"></span>DisplayPort</div>
+      <div><span class="swatch" style="background:var(--c-rca)"></span>RCA</div>
+      <div><span class="swatch" style="background:var(--c-trs)"></span>3.5 / 6.35mm</div>
+      <div><span class="swatch" style="background:var(--c-xlr)"></span>XLR</div>
+      <div><span class="swatch" style="background:var(--c-ts)"></span>악기 (TS)</div>
+    </div>
+    <div class="hint">점선 = 타입이 달라 어댑터·변환 케이블 필요. 굵은 선 = 한 포트를 여러 연결이 공유 중.</div>
+  </div>
+
+  <div class="canvas-wrap">
+    <div class="canvas" id="canvas"><svg class="cables" id="cables"></svg></div>
+    <div class="log-wrap">
+      <div id="scnPanel"></div>
+      <div class="log-title">연결 목록</div>
+      <div id="log"><div class="log-empty">연결 없음</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const TC={usb:'var(--c-usb)',hdmi:'var(--c-hdmi)',dp:'var(--c-dp)',rca:'var(--c-rca)',
+  trs:'var(--c-trs)',xlr:'var(--c-xlr)',ts:'var(--c-ts)',spdif:'var(--c-spdif)'};
+const TL={usb:'USB',hdmi:'HDMI',dp:'DP',rca:'RCA',trs:'3.5/6.35',xlr:'XLR',ts:'TS',spdif:'광'};
+
+// 포트 사양은 검색으로 확인한 제품 스펙 기준. 확인 못한 항목은 라벨에 표시.
+const PRESETS={
+  pc:{name:'PC (7500F · 4070S · B850M)',ports:[
+    {label:'GPU DP #1',type:'dp',dir:'out'},
+    {label:'GPU DP #2',type:'dp',dir:'out'},
+    {label:'GPU HDMI',type:'hdmi',dir:'out'},
+    {label:'USB-A 10G #1',type:'usb',dir:'out'},
+    {label:'USB-A 10G #2',type:'usb',dir:'out'},
+    {label:'USB-A 5G',type:'usb',dir:'out'},
+    {label:'USB-C 20G',type:'usb',dir:'out'},
+    {label:'USB-C 10G',type:'usb',dir:'out'},
+    {label:'보드 사운드 아웃',type:'trs',dir:'out'},
+  ]},
+  monitor:{name:'모니터 (LG 32GR75Q)',ports:[
+    {label:'DP IN',type:'dp',dir:'in'},
+    {label:'HDMI IN #1',type:'hdmi',dir:'in'},
+    {label:'HDMI IN #2',type:'hdmi',dir:'in'},
+    {label:'USB-B 업스트림',type:'usb',dir:'in'},
+    {label:'USB-A 허브 #1',type:'usb',dir:'out'},
+    {label:'헤드폰 아웃',type:'trs',dir:'out'},
+  ]},
+  ns2:{name:'Nintendo Switch 2 (본체)',ports:[
+    {label:'3.5mm 헤드폰잭',type:'trs',dir:'out'},
+    {label:'하단 USB-C → 독',type:'usb',dir:'out'},
+  ]},
+  ns2dock:{name:'NS2 독',ports:[
+    {label:'전원 USB-C IN',type:'usb',dir:'in'},
+    {label:'HDMI 출력',type:'hdmi',dir:'out'},
+    {label:'USB-A #1',type:'usb',dir:'out'},
+    {label:'USB-A #2',type:'usb',dir:'out'},
+  ]},
+  interface:{name:'오디오 인터페이스 (스칼렛 2i2)',ports:[
+    {label:'전면 잭 IN 1 (기타/라인)',type:'ts',dir:'in'},
+    {label:'전면 잭 IN 2 (기타/라인)',type:'ts',dir:'in'},
+    {label:'후면 XLR IN 1',type:'xlr',dir:'in'},
+    {label:'후면 XLR IN 2',type:'xlr',dir:'in'},
+    {label:'USB-C → PC',type:'usb',dir:'in'},
+    {label:'Monitor Out L',type:'trs',dir:'out'},
+    {label:'Monitor Out R',type:'trs',dir:'out'},
+    {label:'헤드폰 OUT',type:'trs',dir:'out'},
+  ]},
+  speakers:{name:'스피커 (에디파이어 MR4)',ports:[
+    {label:'TRS IN L (균형)',type:'trs',dir:'in'},
+    {label:'TRS IN R (균형)',type:'trs',dir:'in'},
+    {label:'RCA IN L',type:'rca',dir:'in'},
+    {label:'RCA IN R',type:'rca',dir:'in'},
+    {label:'AUX IN (3.5mm)',type:'trs',dir:'in'},
+    {label:'전면 헤드폰 OUT',type:'trs',dir:'out'},
+  ]},
+  headphones:{name:'HD-600 (300Ω)',ports:[
+    {label:'6.35mm 플러그',type:'trs',dir:'in'},
+  ]},
+  headset:{name:'클라우드알파 무선',ports:[
+    {label:'USB 동글',type:'usb',dir:'out'},
+  ]},
+  guitar:{name:'기타 (연주할 때만 연결)',ports:[
+    {label:'출력 잭 (TS)',type:'ts',dir:'out'},
+  ]},
+  mic:{name:'마이크 (추가 예정 · XLR 가정)',ports:[
+    {label:'XLR 출력',type:'xlr',dir:'out'},
+  ]},
+  extractor:{name:'HDMI 오디오 분리기',ports:[
+    {label:'HDMI IN',type:'hdmi',dir:'in'},
+    {label:'HDMI 패스스루 OUT',type:'hdmi',dir:'out'},
+    {label:'아날로그 OUT L',type:'rca',dir:'out'},
+    {label:'아날로그 OUT R',type:'rca',dir:'out'},
+  ]},
+  capture:{name:'캡처카드 (화면공유용)',ports:[
+    {label:'HDMI IN',type:'hdmi',dir:'in'},
+    {label:'HDMI 패스스루 OUT',type:'hdmi',dir:'out'},
+    {label:'USB → PC',type:'usb',dir:'out'},
+  ]},
+  monitor2:{name:'세로 모니터 (추가 예정)',ports:[
+    {label:'DP IN',type:'dp',dir:'in'},
+    {label:'HDMI IN',type:'hdmi',dir:'in'},
+  ]},
+  hub:{name:'데스커 허브 (업스트림 타입 미확인)',ports:[
+    {label:'업스트림 → PC',type:'usb',dir:'in'},
+    {label:'데이터 #1',type:'usb',dir:'out'},
+    {label:'데이터 #2',type:'usb',dir:'out'},
+    {label:'데이터 #3',type:'usb',dir:'out'},
+    {label:'PD 충전',type:'usb',dir:'out'},
+  ]},
+  light:{name:'모니터 조명',ports:[{label:'USB-C (전원만)',type:'usb',dir:'in'}]},
+  midikbd:{name:'마스터키보드 (추가 예정)',ports:[
+    {label:'USB → PC (MIDI)',type:'usb',dir:'out'},
+  ]},
+  monctrl:{name:'모니터 컨트롤러 (검토중)',ports:[
+    {label:'입력 A L (2i2에서)',type:'trs',dir:'in'},
+    {label:'입력 A R (2i2에서)',type:'trs',dir:'in'},
+    {label:'입력 B L (NS2 등)',type:'rca',dir:'in'},
+    {label:'입력 B R (NS2 등)',type:'rca',dir:'in'},
+    {label:'스피커 OUT L',type:'trs',dir:'out'},
+    {label:'스피커 OUT R',type:'trs',dir:'out'},
+    {label:'헤드폰 OUT (앰프 내장)',type:'trs',dir:'out'},
+  ]},
+};
+
+const SCENARIOS={
+  'all':{title:'전체 배선',steps:[
+    {t:'항상 꽂아두는 고정 배선. 아래 4가지 상황은 이 배선 위에서 <b>케이블을 다시 꽂지 않고</b> 전환됩니다.'},
+    {t:'유일한 예외 두 가지: <b>기타 케이블</b>(연주할 때만), <b>헤드셋 동글</b>(PC ↔ NS2 독 사이 이동).'},
+  ]},
+  'pc-game':{title:'PC · 게이밍 / 전화',steps:[
+    {t:'<b>헤드셋으로 할 때</b> — 동글을 PC USB에 꽂고 윈도우 출력/입력을 클라우드알파로. 2i2는 놀고 있어도 됩니다.'},
+    {t:'<b>스피커+마이크로 할 때</b> — 윈도우 출력을 2i2로. 소리는 2i2 → MR4 TRS로 나가고, 마이크는 2i2 후면 XLR로 들어옵니다.'},
+    {t:'HD-600이 2i2 헤드폰 아웃에 꽂혀 있으면 스피커와 같은 소리가 동시에 납니다. 거치대에 걸어둘 거면 뽑거나 MR4 노브를 내리세요.',cls:'warn'},
+  ]},
+  'pc-music':{title:'PC · 음악 / 기타 / 솔로 게임',steps:[
+    {t:'<b>HD-600</b> — 2i2 헤드폰 아웃. 300Ω을 제대로 구동할 수 있는 유일한 자리입니다. 들을 때는 MR4 노브를 내려두면 됩니다.'},
+    {t:'<b>스피커</b> — 2i2 Monitor Out L/R → MR4 TRS L/R. 6.35mm TRS 균형 케이블 2가닥이 필요합니다.'},
+    {t:'<b>기타</b> — 칠 때만 2i2 전면 잭 IN 1에 꽂습니다. Nolly X를 거친 소리가 헤드폰과 스피커에 똑같이 나갑니다(2i2는 두 출력이 같은 신호).'},
+    {t:'지연은 케이블이 아니라 DAW 버퍼 크기로 결정됩니다. 지금 HD-600으로 치던 지연 그대로입니다.'},
+  ]},
+  'ns2-game':{title:'NS2 · 게이밍 + 디스코드 통화',steps:[
+    {t:'<b>권장: 스피커 + 마이크.</b> NS2 소리는 RCA로, 디스코드 소리는 2i2 → TRS로 들어와 MR4가 둘을 섞어줍니다. 마이크는 2i2 XLR. 전환 조작이 전혀 없습니다.'},
+    {t:'MR4는 TRS·RCA·AUX 세 입력을 동시에 받습니다. 입력 선택 버튼을 누를 필요가 없는 게 이 구성의 핵심입니다.'},
+    {t:'<b>헤드셋으로는 이 조합이 안 됩니다.</b> 동글이 PC와 독 중 한쪽에만 꽂히므로, NS2 소리와 디스코드 소리를 동시에 못 듣습니다. 헤드셋을 꼭 쓰려면 NS2 소리를 PC로 끌어와야 하고 — 캡처카드(영상 지연 어긋남) 또는 분리기→2i2 라인 입력(2i2 입력 2개를 다 씀, 마이크 자리 없음) 중 하나를 감수해야 합니다.',cls:'warn'},
+  ]},
+  'ns2-music':{title:'NS2 · 솔로 플레이',steps:[
+    {t:'<b>스피커</b> — NS2 → MR4 RCA 경로 그대로. 아날로그라 지연이 없습니다.'},
+    {t:'<b>HD-600</b> — MR4 <b>전면 헤드폰 잭</b>에 꽂습니다. 스피커가 자동으로 뮤트되고 NS2 소리가 그대로 나옵니다.'},
+    {t:'다만 MR4 헤드폰 앰프가 HD-600(300Ω)을 충분히 구동할지는 불확실합니다. 볼륨을 최대로 올려도 부족하면, 그때 모니터 컨트롤러(입력 2개 + 헤드폰 앰프)를 2i2와 스피커 사이에 넣는 게 정석 해결입니다.',cls:'warn'},
+  ]},
+};
+
+let devices=[],connections=[],dseq=0,pseq=0,cseq=0,pending=null,scenario='all';
+const canvas=document.getElementById('canvas'),svg=document.getElementById('cables'),
+  logEl=document.getElementById('log'),scnPanel=document.getElementById('scnPanel');
+
+function addDevice(p,x,y){
+  const id='d'+(dseq++);
+  const d={id,name:p.name,x,y,ports:p.ports.map(o=>({id:'p'+(pseq++),...o}))};
+  devices.push(d);return d;
+}
+function P(dev,label){return dev.ports.find(p=>p.label===label);}
+function connect(a,b,tags,note){
+  connections.push({id:'c'+(cseq++),from:a.id,to:b.id,tags:tags||['all'],note:note||''});
+}
+function findPort(id){for(const d of devices)for(const p of d.ports)if(p.id===id)return{device:d,port:p};return null;}
+function portEl(id){const n=canvas.querySelector('[data-port="'+id+'"]');return n?n.querySelector('.jack'):null;}
+function portCenter(id){const el=portEl(id);if(!el)return null;
+  const c=canvas.getBoundingClientRect(),r=el.getBoundingClientRect();
+  return{x:r.left+r.width/2-c.left,y:r.top+r.height/2-c.top};}
+function usage(id){return connections.filter(c=>c.from===id||c.to===id).length;}
+
+function loadRecommended(){
+  devices=[];connections=[];dseq=pseq=cseq=0;pending=null;
+  const pc=addDevice(PRESETS.pc,30,30);
+  const mon=addDevice(PRESETS.monitor,300,30);
+  const ns2=addDevice(PRESETS.ns2,30,420);
+  const dock=addDevice(PRESETS.ns2dock,300,420);
+  const itf=addDevice(PRESETS.interface,570,30);
+  const spk=addDevice(PRESETS.speakers,860,30);
+  const hd=addDevice(PRESETS.headphones,860,330);
+  const hs=addDevice(PRESETS.headset,30,700);
+  const gtr=addDevice(PRESETS.guitar,570,420);
+  const mic=addDevice(PRESETS.mic,570,560);
+
+  // ── 영상
+  connect(P(pc,'GPU DP #1'),P(mon,'DP IN'),['all','pc-game','pc-music'],'메인 모니터 영상');
+  connect(P(dock,'HDMI 출력'),P(mon,'HDMI IN #1'),['all','ns2-game','ns2-music'],'NS2 영상');
+  connect(P(ns2,'하단 USB-C → 독'),P(dock,'전원 USB-C IN'),['all','ns2-game','ns2-music'],'본체를 독에 거치');
+
+  // ── PC 오디오 체인
+  connect(P(pc,'USB-A 10G #1'),P(itf,'USB-C → PC'),['all','pc-game','pc-music','ns2-game'],'PC 오디오 + 마이크');
+  connect(P(itf,'Monitor Out L'),P(spk,'TRS IN L'),['all','pc-game','pc-music','ns2-game'],'6.35mm TRS 균형');
+  connect(P(itf,'Monitor Out R'),P(spk,'TRS IN R'),['all','pc-game','pc-music','ns2-game'],'6.35mm TRS 균형');
+  connect(P(itf,'헤드폰 OUT'),P(hd,'6.35mm 플러그'),['all','pc-game','pc-music'],'PC 전용 · 300Ω 구동 가능');
+
+  // ── NS2 오디오 (아날로그, 지연 없음)
+  connect(P(ns2,'3.5mm 헤드폰잭'),P(spk,'RCA IN L'),['all','ns2-game','ns2-music'],'3.5mm → 2RCA 케이블');
+  connect(P(ns2,'3.5mm 헤드폰잭'),P(spk,'RCA IN R'),['all','ns2-game','ns2-music'],'같은 케이블의 R 가닥');
+
+  // ── NS2를 HD-600으로 들을 때의 대체 자리
+  connect(P(spk,'전면 헤드폰 OUT'),P(hd,'6.35mm 플러그'),['all','ns2-music'],'NS2 들을 때 이쪽으로 옮김');
+
+  // ── 입력
+  connect(P(mic,'XLR 출력'),P(itf,'후면 XLR IN 2'),['all','pc-game','ns2-game'],'전면 잭과 채널이 겹치지 않게 2번');
+  connect(P(gtr,'출력 잭 (TS)'),P(itf,'전면 잭 IN 1'),['all','pc-music'],'연주할 때만 연결');
+
+  // ── 헤드셋 동글
+  connect(P(hs,'USB 동글'),P(pc,'USB-A 10G #2'),['all','pc-game'],'PC에서 헤드셋 쓸 때');
+  connect(P(hs,'USB 동글'),P(dock,'USB-A #1'),['all'],'NS2 단독으로 헤드셋 쓸 때 (통화 병행 불가)');
+
+  render();
+}
+
+function tryConnect(id){
+  if(!pending){pending=id;render();return;}
+  if(pending===id){pending=null;render();return;}
+  const a=findPort(pending),b=findPort(id);
+  if(a&&b)connections.push({id:'c'+(cseq++),from:pending,to:id,tags:['all',scenario],note:'직접 추가'});
+  pending=null;render();
+}
+function removeConnection(id){connections=connections.filter(c=>c.id!==id);render();}
+function removeDevice(id){
+  devices=devices.filter(d=>d.id!==id);
+  connections=connections.filter(c=>findPort(c.from)&&findPort(c.to));
+  render();
+}
+
+let drag=null;
+function startDrag(e,d){
+  if(e.target.closest('.jack')||e.target.closest('.device-close'))return;
+  const c=canvas.getBoundingClientRect();
+  drag={d,ox:e.clientX-c.left-d.x,oy:e.clientY-c.top-d.y};
+}
+document.addEventListener('mousemove',e=>{
+  if(!drag)return;const c=canvas.getBoundingClientRect();
+  drag.d.x=Math.max(0,e.clientX-c.left-drag.ox);
+  drag.d.y=Math.max(0,e.clientY-c.top-drag.oy);
+  devices.forEach(d=>{const el=canvas.querySelector('[data-device="'+d.id+'"]');
+    if(el){el.style.left=d.x+'px';el.style.top=d.y+'px';}});
+  drawCables();
+});
+document.addEventListener('mouseup',()=>{drag=null;});
+
+function activeConns(){return connections.filter(c=>c.tags.includes(scenario));}
+
+function render(){
+  canvas.querySelectorAll('.device').forEach(n=>n.remove());
+  const live=new Set();
+  activeConns().forEach(c=>{
+    const a=findPort(c.from),b=findPort(c.to);
+    if(a)live.add(a.device.id); if(b)live.add(b.device.id);
+  });
+  devices.forEach(d=>{
+    const div=document.createElement('div');
+    div.className='device'+(live.size&&!live.has(d.id)?' dim':'');
+    div.dataset.device=d.id;div.style.left=d.x+'px';div.style.top=d.y+'px';
+    const head=document.createElement('div');head.className='device-head';
+    head.innerHTML='<span>'+d.name+'</span><button class="device-close">×</button>';
+    head.addEventListener('mousedown',e=>startDrag(e,d));
+    head.querySelector('.device-close').addEventListener('click',()=>removeDevice(d.id));
+    div.appendChild(head);
+    const pw=document.createElement('div');pw.className='ports';
+    d.ports.forEach(p=>{
+      const pr=document.createElement('div');pr.className='port '+p.dir;pr.dataset.port=p.id;
+      pr.innerHTML='<span class="jack" style="background:'+TC[p.type]+'"></span>'+
+        '<span class="plabel">'+p.label+'</span>';
+      pr.querySelector('.jack').addEventListener('click',()=>tryConnect(p.id));
+      pw.appendChild(pr);
+    });
+    div.appendChild(pw);canvas.appendChild(div);
+  });
+  if(pending){const el=portEl(pending);if(el)el.classList.add('active');}
+  drawCables();renderLog();renderScenario();
+}
+
+function drawCables(){
+  svg.innerHTML='';
+  connections.forEach(c=>{
+    const a=portCenter(c.from),b=portCenter(c.to);if(!a||!b)return;
+    const fp=findPort(c.from).port,tp=findPort(c.to).port;
+    const mismatch=fp.type!==tp.type, shared=usage(c.from)>1||usage(c.to)>1;
+    const on=c.tags.includes(scenario);
+    const dx=Math.max(60,Math.abs(b.x-a.x)/2);
+    const path=document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d','M '+a.x+' '+a.y+' C '+(a.x+dx)+' '+a.y+', '+(b.x-dx)+' '+b.y+', '+b.x+' '+b.y);
+    path.setAttribute('fill','none');
+    path.setAttribute('stroke',TC[fp.type]);
+    path.setAttribute('stroke-width',shared?'3.2':'2.5');
+    path.setAttribute('stroke-linecap','round');
+    path.setAttribute('stroke-opacity',on?'0.95':'0.10');
+    if(mismatch)path.setAttribute('stroke-dasharray','6,5');
+    path.addEventListener('click',()=>removeConnection(c.id));
+    const t=document.createElementNS('http://www.w3.org/2000/svg','title');
+    t.textContent=(c.note||'')+' — 클릭하면 삭제';path.appendChild(t);
+    svg.appendChild(path);
+  });
+}
+
+function renderScenario(){
+  const s=SCENARIOS[scenario];if(!s){scnPanel.innerHTML='';return;}
+  let h='<div class="scn-head">'+s.title+'</div>';
+  s.steps.forEach(st=>{h+='<div class="step'+(st.cls?' '+st.cls:'')+'">'+st.t+'</div>';});
+  scnPanel.innerHTML=h;
+}
+
+function renderLog(){
+  const list=activeConns();
+  if(!list.length){logEl.innerHTML='<div class="log-empty">이 상황에서 쓰는 연결 없음</div>';return;}
+  logEl.innerHTML='';
+  list.forEach(c=>{
+    const a=findPort(c.from),b=findPort(c.to);if(!a||!b)return;
+    const mismatch=a.port.type!==b.port.type, shared=usage(c.from)>1||usage(c.to)>1;
+    const item=document.createElement('div');
+    item.className='log-item '+((mismatch||shared)?'warn':'ok');
+    let note=c.note||'';
+    if(mismatch)note+=(note?' · ':'')+'변환 필요 ('+TL[a.port.type]+'→'+TL[b.port.type]+')';
+    if(shared)note+=(note?' · ':'')+'포트 공유';
+    item.innerHTML='<div><b>'+a.device.name.split(' (')[0]+'</b> '+a.port.label+
+      ' → <b>'+b.device.name.split(' (')[0]+'</b> '+b.port.label+
+      (note?'<br><span style="color:var(--muted);font-size:10.5px">'+note+'</span>':'')+'</div>';
+    const x=document.createElement('button');x.className='log-x';x.textContent='×';
+    x.addEventListener('click',()=>removeConnection(c.id));
+    item.appendChild(x);logEl.appendChild(item);
+  });
+}
+
+document.querySelectorAll('.scn-btn').forEach(b=>{
+  b.addEventListener('click',()=>{
+    scenario=b.dataset.scn;
+    document.querySelectorAll('.scn-btn').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');render();
+  });
+});
+document.querySelectorAll('.preset-btn').forEach(b=>{
+  b.addEventListener('click',()=>{
+    const p=PRESETS[b.dataset.preset];
+    addDevice(p,60+(devices.length%5)*250,860);render();
+  });
+});
+document.getElementById('reloadBtn').addEventListener('click',loadRecommended);
+
+loadRecommended();
+document.querySelector('.scn-btn[data-scn="all"]').classList.add('active');
+window.addEventListener('resize',drawCables);
+</script>
+</body>
+</html>
