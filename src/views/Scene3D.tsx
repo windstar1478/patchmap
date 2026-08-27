@@ -5,6 +5,7 @@ import type { Cable, Desk, Device, DeviceId } from '../data/types'
 import { absoluteCenter, indexDevices, lineageOf } from '../model/mount'
 import { indexPorts, ownerOf } from '../model/derive'
 import { connectorOf } from '../data/setup'
+import { buildDevice } from './deviceShapes'
 
 interface Props {
   desk: Desk
@@ -22,6 +23,14 @@ interface Props {
  * 좌표 계산은 2D 뷰와 완전히 같은 함수를 그대로 쓴다.
  * 씬 좌표는 mm 를 그대로 쓰고, 카메라 거리로 스케일을 맞춘다.
  */
+/**
+ * 데이터의 z 는 "사용자에게서 멀어지는 거리"(0 = 앞 모서리)인데,
+ * 씬에서는 카메라를 앞쪽(높은 z)에 두고 -z 를 바라봐야 +x 가 화면 오른쪽에 온다.
+ * 그래야 사용자가 모니터를 바라보는 기준과 좌우가 일치한다.
+ * 그래서 씬에 넣을 때 z 를 뒤집는다.
+ */
+const sz = (z: number, deskD: number) => deskD - z
+
 export function Scene3D({
   desk,
   deskHeight,
@@ -50,10 +59,10 @@ export function Scene3D({
 
     const scene = new THREE.Scene()
     scene.background = new THREE.Color(0x10161a)
-    scene.fog = new THREE.Fog(0x10161a, 3500, 9000)
+    scene.fog = new THREE.Fog(0x10161a, 5200, 12000)
 
     const camera = new THREE.PerspectiveCamera(38, 1, 10, 20000)
-    camera.position.set(2300, 1500, 2600)
+    camera.position.set(1060, 1560, 3350)
 
     const renderer = new THREE.WebGLRenderer({ antialias: true })
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2))
@@ -64,7 +73,7 @@ export function Scene3D({
     const controls = new OrbitControls(camera, renderer.domElement)
     controls.enableDamping = true
     controls.dampingFactor = 0.08
-    controls.target.set(desk.w / 2, 700, desk.d / 2)
+    controls.target.set(desk.w / 2, 640, desk.d / 2)
     controls.maxPolarAngle = Math.PI / 2 - 0.02
     controls.minDistance = 600
     controls.maxDistance = 9000
@@ -98,6 +107,21 @@ export function Scene3D({
     const grid = new THREE.GridHelper(12000, 48, 0x2b3a42, 0x1e2a30)
     grid.position.set(desk.w / 2, 1, desk.d / 2)
     scene.add(grid)
+
+    // 정면 표식 — 어디가 내 자리인지 한눈에 보이게 한다.
+    // 의자를 세우면 카메라를 가리므로 바닥에 눕힌 표식만 쓴다.
+    const seat = new THREE.Group()
+    const plate = new THREE.Mesh(
+      new THREE.PlaneGeometry(620, 460),
+      new THREE.MeshBasicMaterial({ color: 0x212f36, side: THREE.DoubleSide }),
+    )
+    plate.rotation.x = -Math.PI / 2
+    plate.position.set(desk.w / 2, 4, sz(-560, desk.d))
+    seat.add(plate)
+    seat.add(floorTag('내 자리 · 정면', desk.w / 2, sz(-560, desk.d)))
+    seat.add(floorTag('◀ 좌', -420, sz(-180, desk.d)))
+    seat.add(floorTag('우 ▶', desk.w + 420, sz(-180, desk.d)))
+    scene.add(seat)
 
     const content = new THREE.Group()
     scene.add(content)
@@ -215,29 +239,36 @@ export function Scene3D({
       const c = absoluteCenter(d.id, deskHeight, index)
       const onDesk = lineageOf(d.id, index) === 'desk'
       const selected = selectedDeviceId === d.id
-      const mat = new THREE.MeshStandardMaterial({
-        color: selected ? 0x3fc4d4 : onDesk ? 0x4d6b7a : 0x35505c,
-        roughness: 0.55,
-        metalness: 0.12,
-        transparent: d.verified === false,
-        opacity: d.verified === false ? 0.72 : 1,
+      const group = buildDevice(d, selected)
+      group.position.set(c.x, c.y, sz(c.z, desk.d))
+      group.userData.deviceId = d.id
+      // 히트 테스트가 자식까지 닿도록 id 를 전부에 심는다.
+      group.traverse((o) => {
+        o.userData.deviceId = d.id
+        if (d.verified === false) {
+          const m = (o as THREE.Mesh).material as THREE.MeshStandardMaterial | undefined
+          if (m && 'opacity' in m) {
+            m.transparent = true
+            m.opacity = 0.8
+          }
+        }
       })
-      const box = new THREE.Mesh(new THREE.BoxGeometry(d.dims.w, d.dims.h, d.dims.d), mat)
-      box.position.set(c.x, c.y, c.z)
-      box.castShadow = true
-      box.receiveShadow = true
-      box.userData.deviceId = d.id
-      content.add(box)
-
-      const edges = new THREE.LineSegments(
-        new THREE.EdgesGeometry(box.geometry),
-        new THREE.LineBasicMaterial({ color: selected ? 0x9beaf3 : 0x7d99a6 }),
-      )
-      edges.position.copy(box.position)
-      content.add(edges)
+      content.add(group)
 
       // 이름표를 전부 띄우면 화면이 뒤덮인다. 선택한 것만 보여준다.
-      if (selected) content.add(makeLabel(d.name, c, d.dims.h))
+      if (selected) {
+        content.add(makeLabel(d.name, { ...c, z: sz(c.z, desk.d) }, d.dims.h))
+      }
+      if (!onDesk) {
+        // 바닥 기기는 상판에 가려 안 보일 수 있어 접지 표시를 남긴다.
+        const ring = new THREE.Mesh(
+          new THREE.RingGeometry(d.dims.w * 0.5, d.dims.w * 0.5 + 14, 32),
+          new THREE.MeshBasicMaterial({ color: 0x3d5763, side: THREE.DoubleSide }),
+        )
+        ring.rotation.x = -Math.PI / 2
+        ring.position.set(c.x, 3, sz(c.z, desk.d))
+        content.add(ring)
+      }
     }
 
     // 케이블 — 기기 중심을 잇는 맨해튼 경로를 그대로 3D 로 그린다.
@@ -248,11 +279,13 @@ export function Scene3D({
       const pa = absoluteCenter(a, deskHeight, index)
       const pb = absoluteCenter(b, deskHeight, index)
       const active = activeCableIds.has(cab.id)
+      const za = sz(pa.z, desk.d)
+      const zb = sz(pb.z, desk.d)
       const pts = [
-        new THREE.Vector3(pa.x, pa.y, pa.z),
-        new THREE.Vector3(pb.x, pa.y, pa.z),
-        new THREE.Vector3(pb.x, pa.y, pb.z),
-        new THREE.Vector3(pb.x, pb.y, pb.z),
+        new THREE.Vector3(pa.x, pa.y, za),
+        new THREE.Vector3(pb.x, pa.y, za),
+        new THREE.Vector3(pb.x, pa.y, zb),
+        new THREE.Vector3(pb.x, pb.y, zb),
       ]
       const curve = new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.4)
       const tube = new THREE.Mesh(
@@ -290,28 +323,39 @@ function clear(group: THREE.Group) {
   }
 }
 
+/** 바닥에 눕혀 놓는 방향 표식. */
+function floorTag(text: string, x: number, z: number): THREE.Sprite {
+  const sprite = textSprite(text, 'rgba(16,22,26,0.55)', '#a8c2ce', 46)
+  sprite.position.set(x, 6, z)
+  return sprite
+}
+
 /** 기기 위에 뜨는 이름표. 카메라를 향하도록 sprite 로 만든다. */
 function makeLabel(
   name: string,
   c: { x: number; y: number; z: number },
   height: number,
 ): THREE.Sprite {
-  const text = name.replace(/\s*\(.*$/, '')
+  const sprite = textSprite(name.replace(/\s*\(.*$/, ''), 'rgba(63,196,212,0.94)', '#07181c', 44)
+  sprite.position.set(c.x, c.y + height / 2 + 70, c.z)
+  return sprite
+}
+
+function textSprite(text: string, bg: string, fg: string, font: number): THREE.Sprite {
   const pad = 16
-  const font = 44
   const cv = document.createElement('canvas')
-  const ctx = cv.getContext('2d')!
-  ctx.font = `500 ${font}px -apple-system, "Apple SD Gothic Neo", sans-serif`
-  const w = ctx.measureText(text).width
-  cv.width = Math.ceil(w + pad * 2)
+  const probe = cv.getContext('2d')!
+  const face = `500 ${font}px -apple-system, "Apple SD Gothic Neo", sans-serif`
+  probe.font = face
+  cv.width = Math.ceil(probe.measureText(text).width + pad * 2)
   cv.height = font + pad * 2
-  const c2 = cv.getContext('2d')!
-  c2.fillStyle = 'rgba(63,196,212,0.94)'
-  c2.fillRect(0, 0, cv.width, cv.height)
-  c2.font = `500 ${font}px -apple-system, "Apple SD Gothic Neo", sans-serif`
-  c2.fillStyle = '#07181c'
-  c2.textBaseline = 'middle'
-  c2.fillText(text, pad, cv.height / 2)
+  const ctx = cv.getContext('2d')!
+  ctx.fillStyle = bg
+  ctx.fillRect(0, 0, cv.width, cv.height)
+  ctx.font = face
+  ctx.fillStyle = fg
+  ctx.textBaseline = 'middle'
+  ctx.fillText(text, pad, cv.height / 2)
 
   const tex = new THREE.CanvasTexture(cv)
   tex.minFilter = THREE.LinearFilter
@@ -320,7 +364,6 @@ function makeLabel(
   )
   const scale = 0.62
   sprite.scale.set(cv.width * scale, cv.height * scale, 1)
-  sprite.position.set(c.x, c.y + height / 2 + 70, c.z)
   sprite.renderOrder = 999
   return sprite
 }
