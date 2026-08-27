@@ -1,5 +1,6 @@
-import type { Device, DeviceId, Vec3 } from '../data/types'
-import { absoluteCenter, type DeviceIndex } from './mount'
+import type { Desk, Device, DeviceId, Vec3 } from '../data/types'
+import type { DeviceIndex } from './mount'
+import { routeCable, routeLength, type RouteOptions } from './route'
 
 export type View = 'front' | 'top' | 'side'
 
@@ -80,26 +81,17 @@ export function applySlack(pathMm: number, slack: SlackRule): number {
 /**
  * 두 기기 사이의 경로 길이.
  *
- * B1 미결정 상태의 기본값: 맨해튼 거리(축별 이동의 합).
- * waypoint(트레이·다리 경유)로 바뀌면 이 함수만 교체하면 되도록 격리해 둔다.
+ * 질문 4 답: 실제 경로는 상판 배선홀 → 배선트레이를 탄다.
+ * routeCable() 이 그 꺾인 경로를 만들고, 여기서는 그 길이를 잰다.
+ * 2D·3D 렌더러도 같은 경로를 그리므로 화면과 숫자가 어긋나지 않는다.
  */
 export function pathLength(
   a: DeviceId,
   b: DeviceId,
   deskHeight: number,
   index: DeviceIndex,
-  waypoints: readonly { x: number; y: number; z: number }[] = [],
+  desk: Desk,
+  opts: RouteOptions = {},
 ): number {
-  const pa = absoluteCenter(a, deskHeight, index)
-  const pb = absoluteCenter(b, deskHeight, index)
-  const chain = [pa, ...waypoints, pb]
-  let total = 0
-  for (let i = 1; i < chain.length; i++) {
-    total += manhattan(chain[i - 1]!, chain[i]!)
-  }
-  return total
-}
-
-function manhattan(a: { x: number; y: number; z: number }, b: { x: number; y: number; z: number }): number {
-  return Math.abs(a.x - b.x) + Math.abs(a.y - b.y) + Math.abs(a.z - b.z)
+  return routeLength(routeCable(a, b, deskHeight, index, desk, opts))
 }

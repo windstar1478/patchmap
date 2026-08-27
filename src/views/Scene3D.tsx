@@ -3,7 +3,8 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import type { Cable, Desk, Device, DeviceId } from '../data/types'
 import { absoluteCenter, indexDevices, lineageOf } from '../model/mount'
-import { indexPorts, ownerOf } from '../model/derive'
+import { indexPorts, ownerOf, routeOptsFor } from '../model/derive'
+import { routeCable } from '../model/route'
 import { connectorOf } from '../data/setup'
 import { buildDevice } from './deviceShapes'
 
@@ -234,6 +235,36 @@ export function Scene3D({
       content.add(leg)
     }
 
+    // 배선트레이 — 상판 하부에 걸린 ㄷ자 트레이
+    if (desk.tray) {
+      const t = desk.tray
+      const trayMat = new THREE.MeshStandardMaterial({ color: 0x6f6a5e, roughness: 1 })
+      const wall = 8
+      const floorY = deskHeight - desk.thickness - t.h
+      const trayZ = sz(t.z, desk.d)
+      const bottom = new THREE.Mesh(new THREE.BoxGeometry(t.w, wall, t.d + wall * 2), trayMat)
+      bottom.position.set(t.x, floorY - wall / 2, trayZ)
+      bottom.receiveShadow = true
+      content.add(bottom)
+      for (const sZ of [-1, 1]) {
+        const side = new THREE.Mesh(new THREE.BoxGeometry(t.w, t.h, wall), trayMat)
+        side.position.set(t.x, floorY + t.h / 2, trayZ + sZ * (t.d / 2 + wall / 2))
+        content.add(side)
+      }
+    }
+
+    // 배선홀
+    if (desk.cableHole) {
+      const hole = desk.cableHole
+      const ring = new THREE.Mesh(
+        new THREE.RingGeometry(hole.dia / 2, hole.dia / 2 + 10, 28),
+        new THREE.MeshBasicMaterial({ color: 0x1a2429, side: THREE.DoubleSide }),
+      )
+      ring.rotation.x = -Math.PI / 2
+      ring.position.set(hole.x, deskHeight + 1, sz(hole.z, desk.d))
+      content.add(ring)
+    }
+
     // 기기
     for (const d of devices) {
       const c = absoluteCenter(d.id, deskHeight, index)
@@ -276,20 +307,15 @@ export function Scene3D({
       const a = ownerOf(cab.from, ports, index)
       const b = ownerOf(cab.to, ports, index)
       if (!a || !b) continue
-      const pa = absoluteCenter(a, deskHeight, index)
-      const pb = absoluteCenter(b, deskHeight, index)
       const active = activeCableIds.has(cab.id)
-      const za = sz(pa.z, desk.d)
-      const zb = sz(pb.z, desk.d)
-      const pts = [
-        new THREE.Vector3(pa.x, pa.y, za),
-        new THREE.Vector3(pb.x, pa.y, za),
-        new THREE.Vector3(pb.x, pa.y, zb),
-        new THREE.Vector3(pb.x, pb.y, zb),
-      ]
-      const curve = new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.4)
+      // 길이 계산과 똑같은 경로를 그린다. 화면과 숫자가 어긋나지 않게.
+      const pts = routeCable(a, b, deskHeight, index, desk, routeOptsFor(cab)).map(
+        (p) => new THREE.Vector3(p.x, p.y, sz(p.z, desk.d)),
+      )
+      if (pts.length < 2) continue
+      const curve = new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.18)
       const tube = new THREE.Mesh(
-        new THREE.TubeGeometry(curve, 48, active ? 9 : 5, 6, false),
+        new THREE.TubeGeometry(curve, Math.max(64, pts.length * 18), active ? 8 : 4.5, 6, false),
         new THREE.MeshStandardMaterial({
           color: new THREE.Color(connectorOf(cab.type).color),
           roughness: 0.6,

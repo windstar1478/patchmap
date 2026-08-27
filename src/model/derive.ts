@@ -29,6 +29,11 @@ export function portOf(endpoint: EndpointId, ports: PortIndex): Port | undefined
   return ports.get(endpoint)?.port
 }
 
+/** 그 케이블이 배선트레이를 타는가. 간헐 연결은 타지 않는다. */
+export function routeOptsFor(cable: Cable) {
+  return { direct: cable.intermittent === true }
+}
+
 /** 길이 판정 대상인가. 동글처럼 직결되는 것은 lengthMm 이 0 이라 대상이 아니다. */
 export function hasPhysicalLength(cable: Cable): boolean {
   return (cable.lengthMm ?? 0) > 0
@@ -57,12 +62,13 @@ export function requiredLength(
   deskHeight: number,
   ports: PortIndex,
   devices: DeviceIndex,
+  desk: Desk,
   slack: SlackRule = DEFAULT_SLACK,
 ): number | undefined {
   const a = ownerOf(cable.from, ports, devices)
   const b = ownerOf(cable.to, ports, devices)
   if (!a || !b) return undefined
-  return applySlack(pathLength(a, b, deskHeight, devices), slack)
+  return applySlack(pathLength(a, b, deskHeight, devices, desk, routeOptsFor(cable)), slack)
 }
 
 export interface CableFit {
@@ -82,10 +88,11 @@ export function cableFit(
   deskHeight: number,
   ports: PortIndex,
   devices: DeviceIndex,
+  desk: Desk,
   slack: SlackRule = DEFAULT_SLACK,
 ): CableFit {
   const crosses = crossesBoundary(cable, ports, devices)
-  const required = requiredLength(cable, deskHeight, ports, devices, slack)
+  const required = requiredLength(cable, deskHeight, ports, devices, desk, slack)
   const have = hasPhysicalLength(cable) ? cable.lengthMm : undefined
   if (required === undefined || have === undefined) {
     return { cable, crosses, required, have, marginMm: undefined, status: 'unknown' }
@@ -129,7 +136,7 @@ export function maxHeightFor(
   let best = desk.hMin
   let shortAtMin = false
   for (let h = desk.hMin; h <= desk.hMax; h += stepMm) {
-    const need = requiredLength(cable, h, ports, devices, slack)
+    const need = requiredLength(cable, h, ports, devices, desk, slack)
     if (need === undefined) return undefined
     if (need <= have) best = h
     else if (h === desk.hMin) shortAtMin = true
@@ -175,10 +182,11 @@ export function shortagesAt(
   height: number,
   ports: PortIndex,
   devices: DeviceIndex,
+  desk: Desk,
   slack: SlackRule = DEFAULT_SLACK,
 ): CableFit[] {
   return cables
-    .map((c) => cableFit(c, height, ports, devices, slack))
+    .map((c) => cableFit(c, height, ports, devices, desk, slack))
     .filter((f) => f.status === 'short')
     .sort((a, b) => (a.marginMm ?? 0) - (b.marginMm ?? 0))
 }

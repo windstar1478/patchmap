@@ -88,6 +88,27 @@ export interface Scenario {
   notes?: string[]
 }
 
+/** 상판 하부에 걸어 쓰는 배선트레이. 멀티탭과 전원선이 여기 들어간다. */
+export interface Tray {
+  /** 내부 치수 */
+  w: number
+  d: number
+  h: number
+  x: number
+  z: number
+  verified?: boolean
+  notes?: string
+}
+
+/** 상판 배선홀. 상판계 케이블이 여기로 내려가 트레이로 들어간다. */
+export interface CableHole {
+  x: number
+  z: number
+  dia: number
+  verified?: boolean
+  notes?: string
+}
+
 export interface Desk {
   model: string
   w: number
@@ -101,6 +122,8 @@ export interface Desk {
   legW: number
   verified?: boolean
   notes?: string
+  tray?: Tray
+  cableHole?: CableHole
 }
 
 export interface ConnectorTypeDef {

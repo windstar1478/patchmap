@@ -137,6 +137,7 @@ export default function App() {
         <CableTable
           cables={cables}
           devices={devices}
+          desk={desk}
           deskHeight={state.deskHeight}
           slack={state.slack}
           activeCableIds={activeCableIds}

@@ -2,7 +2,8 @@ import { useCallback, useRef, useState } from 'react'
 import type { Cable, Desk, Device, DeviceId } from '../data/types'
 import { extentFor, project, unproject, type View } from '../model/geometry'
 import { absoluteCenter, absoluteY, indexDevices, lineageOf } from '../model/mount'
-import { indexPorts, ownerOf } from '../model/derive'
+import { indexPorts, ownerOf, routeOptsFor } from '../model/derive'
+import { routeCable } from '../model/route'
 import { connectorOf } from '../data/setup'
 
 interface Props {
@@ -101,15 +102,17 @@ export function SceneView({
         const a = ownerOf(c.from, ports, index)
         const b = ownerOf(c.to, ports, index)
         if (!a || !b) return null
-        const pa = project(absoluteCenter(a, deskHeight, index), view)
-        const pb = project(absoluteCenter(b, deskHeight, index), view)
-        const sa = toScreen(pa.u, pa.v)
-        const sb = toScreen(pb.u, pb.v)
+        // 3D·길이 계산과 같은 경로를 투영해서 그린다.
+        const pts = routeCable(a, b, deskHeight, index, desk, routeOptsFor(c)).map((p) => {
+          const q = project(p, view)
+          return toScreen(q.u, q.v)
+        })
+        if (pts.length < 2) return null
         const active = activeCableIds.has(c.id)
         return (
           <path
             key={c.id}
-            d={`M ${sa.sx} ${sa.sy} L ${sa.sx} ${sb.sy} L ${sb.sx} ${sb.sy}`}
+            d={pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.sx} ${p.sy}`).join(' ')}
             fill="none"
             stroke={connectorOf(c.type).color}
             strokeWidth={active ? 9 : 5}

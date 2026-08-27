@@ -98,7 +98,7 @@ describe('경계 통과 판정', () => {
   it('길이 0인 동글은 길이 판정 대상이 아니다 (점검결과 F)', () => {
     const c = cables.find((x) => x.id === 'c-dongle-pc')!
     expect(crossesBoundary(c, pIndex, dIndex)).toBe(true)
-    expect(cableFit(c, 630, pIndex, dIndex).status).toBe('unknown')
+    expect(cableFit(c, 630, pIndex, dIndex, desk).status).toBe('unknown')
   })
 })
 
@@ -109,8 +109,8 @@ describe('상판 높이 한계 — 점검결과 A', () => {
     expect(ceiling.maxHeight).toBe(desk.hMin)
   })
 
-  it('여유 15%+50mm 로 올리면 받침대·모니터 세 가닥이 모두 모자란다', () => {
-    const ceiling = maxDeskHeight(cables, pIndex, dIndex, desk, { ratio: 0.15, fixedMm: 50 })
+  it('배선트레이 경로 기준으로는 세 가닥이 최저 높이에서도 모자란다', () => {
+    const ceiling = maxDeskHeight(cables, pIndex, dIndex, desk, DEFAULT_SLACK)
     expect(ceiling.shortAtMin.map((l) => l.cableId).sort()).toEqual([
       'c-dp-mon',
       'c-usb-mon',
@@ -118,17 +118,13 @@ describe('상판 높이 한계 — 점검결과 A', () => {
     ])
   })
 
-  it('기본 여유(10%)에서는 c-usb-st 하나만 모자란다', () => {
-    const ceiling = maxDeskHeight(cables, pIndex, dIndex, desk, DEFAULT_SLACK)
-    expect(ceiling.shortAtMin.map((l) => l.cableId)).toEqual(['c-usb-st'])
-  })
-
-  it('여유를 0으로 두면 상승은 가능해지지만 여전히 711mm 에서 막힌다 (B2 민감도)', () => {
-    // 결론이 여유율 규칙에 크게 좌우된다는 근거. B2 결정이 필요한 이유다.
+  it('여유를 0으로 두어도 해소되지 않는다 — 경로가 길어서지 여유 탓이 아니다', () => {
     const ceiling = maxDeskHeight(cables, pIndex, dIndex, desk, { ratio: 0, fixedMm: 0 })
-    expect(ceiling.shortAtMin).toEqual([])
-    expect(ceiling.maxHeight).toBe(711)
-    expect(ceiling.limitedBy.map((l) => l.cableId)).toEqual(['c-usb-st'])
+    expect(ceiling.shortAtMin.map((l) => l.cableId).sort()).toEqual([
+      'c-dp-mon',
+      'c-usb-mon',
+      'c-usb-st',
+    ])
   })
 
   it('경계를 넘지 않는 케이블은 한계 계산에 끼어들지 않는다', () => {
@@ -148,52 +144,34 @@ describe('상판 높이 한계 — 점검결과 A', () => {
 describe('실사용 높이 710mm — 질문 6 답변 반영', () => {
   const H = 710
 
-  it('기본 여유(10%)에서 모자란 것은 c-usb-st 하나뿐이다', () => {
-    const short = shortagesAt(cables, H, pIndex, dIndex, DEFAULT_SLACK)
-    expect(short.map((f) => f.cable.id)).toEqual(['c-usb-st'])
+  it('모자란 것은 받침대·모니터로 가는 세 가닥이며, 여유 순으로 정렬된다', () => {
+    const short = shortagesAt(cables, H, pIndex, dIndex, desk, DEFAULT_SLACK)
+    expect(short.map((f) => f.cable.id)).toEqual(['c-usb-st', 'c-dp-mon', 'c-usb-mon'])
+    expect(short[0]!.marginMm).toBeLessThan(short[1]!.marginMm!)
   })
 
-  it('여유 15%+50mm 로 올리면 모니터 두 가닥도 함께 걸린다', () => {
-    const short = shortagesAt(cables, H, pIndex, dIndex, { ratio: 0.15, fixedMm: 50 })
-    expect(short.map((f) => f.cable.id).sort()).toEqual(['c-dp-mon', 'c-usb-mon', 'c-usb-st'])
+  it('권장 교체 길이를 규격에서 골라준다', () => {
+    const short = shortagesAt(cables, H, pIndex, dIndex, desk, DEFAULT_SLACK)
+    const rec = Object.fromEntries(short.map((f) => [f.cable.id, f.recommendMm]))
+    expect(rec['c-usb-st']).toBe(2000)
+    expect(rec['c-dp-mon']).toBe(3000)
   })
 
-  it('c-usb-st 의 권장 교체 길이는 1.5m 가 아니라 넉넉한 규격이어야 한다', () => {
-    const [short] = shortagesAt(cables, H, pIndex, dIndex, DEFAULT_SLACK)
-    expect(short!.cable.id).toBe('c-usb-st')
-    // 필요 1099mm → 규격상 1.5m 면 닿지만, 사용자가 2m 로 갈 의향을 밝혔다.
-    expect(short!.recommendMm).toBe(1500)
-    expect(short!.required).toBeLessThan(2000)
+  it('권장 길이대로 바꾸면 전부 해소된다', () => {
+    const target: Record<string, number> = { 'c-usb-st': 2000, 'c-dp-mon': 3000, 'c-usb-mon': 3000 }
+    const fixed = cables.map((c) => (target[c.id] ? { ...c, lengthMm: target[c.id]! } : c))
+    expect(shortagesAt(fixed, H, pIndex, dIndex, desk, DEFAULT_SLACK)).toEqual([])
   })
 
-  it('2m 로 바꾸면 기본 여유는 물론 15%+50mm 에서도 충분하다', () => {
-    const swapped = cables.map((c) => (c.id === 'c-usb-st' ? { ...c, lengthMm: 2000 } : c))
-    expect(shortagesAt(swapped, H, pIndex, dIndex, DEFAULT_SLACK)).toEqual([])
-    const generous = shortagesAt(swapped, H, pIndex, dIndex, { ratio: 0.15, fixedMm: 50 })
-    expect(generous.map((f) => f.cable.id).sort()).toEqual(['c-dp-mon', 'c-usb-mon'])
-  })
-
-  it('c-usb-st 는 여유 0에서 겨우 1mm 남는다 — 사실상 길이가 없다', () => {
-    const fit = cableFit(
-      cables.find((c) => c.id === 'c-usb-st')!,
-      H,
-      pIndex,
-      dIndex,
-      { ratio: 0, fixedMm: 0 },
-    )
-    expect(Math.round(fit.marginMm!)).toBe(1)
-  })
-
-  it('경계 케이블을 전부 2m 로 맞추면 어떤 여유 설정에서도 충분하다', () => {
-    const all2m = cables.map((c) =>
-      ['c-usb-st', 'c-dp-mon', 'c-usb-mon'].includes(c.id) ? { ...c, lengthMm: 2000 } : c,
-    )
-    expect(shortagesAt(all2m, H, pIndex, dIndex, { ratio: 0.2, fixedMm: 100 })).toEqual([])
+  it('기타 케이블은 트레이를 타지 않으므로 여유가 남는다', () => {
+    // 연주할 때만 전면 잭에 꽂으므로 배선트레이 경로를 강제하면 안 된다.
+    const fit = cableFit(cables.find((c) => c.id === 'c-gtr')!, H, pIndex, dIndex, desk)
+    expect(fit.status).toBe('ok')
   })
 
   it('평소 쓰는 높이는 최저 630 보다 위이므로, 630 기준 판정보다 빡빡하다', () => {
-    const at630 = shortagesAt(cables, 630, pIndex, dIndex, { ratio: 0.1, fixedMm: 0 })
-    const at710 = shortagesAt(cables, H, pIndex, dIndex, { ratio: 0.1, fixedMm: 0 })
+    const at630 = shortagesAt(cables, 630, pIndex, dIndex, desk, { ratio: 0.1, fixedMm: 0 })
+    const at710 = shortagesAt(cables, H, pIndex, dIndex, desk, { ratio: 0.1, fixedMm: 0 })
     expect(at710.length).toBeGreaterThanOrEqual(at630.length)
   })
 })

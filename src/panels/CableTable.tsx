@@ -1,4 +1,4 @@
-import type { Cable, CableId, Device } from '../data/types'
+import type { Cable, CableId, Desk, Device } from '../data/types'
 import { indexDevices } from '../model/mount'
 import { cableFit, indexPorts, typeMismatch } from '../model/derive'
 import type { SlackRule } from '../model/geometry'
@@ -7,13 +7,14 @@ import { connectorOf } from '../data/setup'
 interface Props {
   cables: Cable[]
   devices: Device[]
+  desk: Desk
   deskHeight: number
   slack: SlackRule
   activeCableIds: Set<string>
   onLength: (id: CableId, mm: number | null) => void
 }
 
-export function CableTable({ cables, devices, deskHeight, slack, activeCableIds, onLength }: Props) {
+export function CableTable({ cables, devices, desk, deskHeight, slack, activeCableIds, onLength }: Props) {
   const index = indexDevices(devices)
   const ports = indexPorts(devices)
 
@@ -38,7 +39,7 @@ export function CableTable({ cables, devices, deskHeight, slack, activeCableIds,
           </thead>
           <tbody>
             {cables.map((c) => {
-              const fit = cableFit(c, deskHeight, ports, index, slack)
+              const fit = cableFit(c, deskHeight, ports, index, desk, slack)
               const mismatch = typeMismatch(c, ports)
               const dim = !activeCableIds.has(c.id)
               return (

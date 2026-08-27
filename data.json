@@ -12,7 +12,23 @@
     "legInset": 110,
     "legW": 60,
     "verified": true,
-    "notes": "높이범위·하중은 사용자 제공. 상판은 가공목(파티클보드+LPM시트) — 하부 나사 체결 시 유지력 주의."
+    "notes": "높이범위·하중은 사용자 제공. 상판은 가공목(파티클보드+LPM시트) — 하부 나사 체결 시 유지력 주의. 배선트레이(660×105×140)와 배선홀이 있어 상판 하부에 멀티탭을 수납할 수 있다.",
+    "tray": {
+      "w": 660,
+      "d": 105,
+      "h": 140,
+      "x": 900,
+      "z": 700,
+      "verified": true,
+      "notes": "데스커 배선트레이 내부 사이즈 660×105×140. ㄷ자 형태로 상판 하부 브라켓에 걸어 사용. 멀티탭과 전원선을 여기 수납한다. x·z 는 상판 중앙/뒤쪽 가정 — 브라켓 실제 위치는 미확인."
+    },
+    "cableHole": {
+      "x": 1500,
+      "z": 740,
+      "dia": 60,
+      "verified": false,
+      "notes": "상판 배선홀. 상판계 기기의 케이블이 여기로 내려가 트레이로 들어간다. 위치는 추정 — 실측 필요."
+    }
   },
   "connectorTypes": {
     "usb": {
@@ -572,9 +588,9 @@
       "ports": [
         {
           "id": "hs-dongle",
-          "label": "USB 동글",
+          "label": "USB 동글 (수신기 — 호스트에 꽂힌다)",
           "type": "usb",
-          "dir": "out"
+          "dir": "in"
         }
       ]
     },
@@ -698,13 +714,13 @@
       },
       "mount": "under-desktop",
       "pos": {
-        "x": 700,
-        "z": 400,
-        "yOff": -95
+        "x": 900,
+        "z": 700,
+        "yOff": -165
       },
       "weightKg": 0.6,
       "verified": false,
-      "notes": "이미 상판 하부에 부착됨 → 상판 위 전원 기기들은 경계를 건너지 않음. 권장 6구 최소 / 8구. 어댑터 벽돌 간섭 때문에 소켓 간격 넓은 모델 필요.",
+      "notes": "데스커 배선트레이(660×105×140) 안에 수납. 트레이 바닥 기준으로 놓인다. 권장 6구 최소 / 8구. 어댑터 벽돌 간섭 때문에 소켓 간격 넓은 모델 필요.",
       "ports": []
     },
     {
@@ -1118,9 +1134,9 @@
     },
     {
       "id": "c-dongle-pc",
-      "name": "헤드셋 동글 → PC USB",
-      "from": "hs-dongle",
-      "to": "pc-ua4",
+      "name": "PC USB → 헤드셋 동글",
+      "from": "pc-ua4",
+      "to": "hs-dongle",
       "type": "usb",
       "lengthMm": 0,
       "exclusiveWith": [
@@ -1129,9 +1145,9 @@
     },
     {
       "id": "c-dongle-dock",
-      "name": "헤드셋 동글 → NS2 독 USB",
-      "from": "hs-dongle",
-      "to": "dk-ua1",
+      "name": "NS2 독 USB → 헤드셋 동글",
+      "from": "dk-ua1",
+      "to": "hs-dongle",
       "type": "usb",
       "lengthMm": 0,
       "exclusiveWith": [
