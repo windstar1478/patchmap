@@ -148,9 +148,17 @@ export function SceneView({
               strokeWidth={selected ? 8 : 3}
               strokeDasharray={d.verified === false ? '16 10' : undefined}
             />
-            <text x={s.sx} y={s.sy + 12} textAnchor="middle" fontSize={34} fill="var(--dev-label)">
-              {shortName(d.name)}
-            </text>
+            {selected && (
+              <text
+                x={s.sx}
+                y={s.sy - ext.h / 2 - 22}
+                textAnchor="middle"
+                fontSize={40}
+                fill="var(--accent)"
+              >
+                {shortName(d.name)}
+              </text>
+            )}
           </g>
         )
       })}
@@ -168,7 +176,7 @@ function roundPos(p: Device['pos']): Device['pos'] {
 }
 
 function shortName(name: string): string {
-  return name.replace(/\s*\(.*$/, '').slice(0, 12)
+  return name.replace(/\s*\(.*$/, '')
 }
 
 interface BoxT {

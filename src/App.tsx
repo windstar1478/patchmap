@@ -1,8 +1,9 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { usePatchmap } from './store'
 import { cablesForScenario, desk } from './data/setup'
 import type { View } from './model/geometry'
 import { SceneView } from './views/SceneView'
+import { Scene3D } from './views/Scene3D'
 import { CableTable } from './panels/CableTable'
 import { LoadPanel } from './panels/LoadPanel'
 import { HeightPanel } from './panels/HeightPanel'
@@ -10,7 +11,11 @@ import { ScenarioPanel } from './panels/ScenarioPanel'
 import { DevicePanel } from './panels/DevicePanel'
 import { QuestionPanel } from './panels/QuestionPanel'
 
-const VIEWS: { id: View; label: string }[] = [
+/** '3d' 는 투영 함수를 쓰지 않으므로 View 와 별도로 둔다. */
+type ViewMode = View | '3d'
+
+const VIEWS: { id: ViewMode; label: string }[] = [
+  { id: '3d', label: '3D' },
   { id: 'front', label: '정면도' },
   { id: 'top', label: '평면도' },
   { id: 'side', label: '측면도' },
@@ -18,12 +23,15 @@ const VIEWS: { id: View; label: string }[] = [
 
 export default function App() {
   const { state, dispatch, devices, cables } = usePatchmap()
+  // 호버는 저장할 필요 없는 순간 상태라 리듀서에 넣지 않는다.
+  const [hoveredId, setHoveredId] = useState<string | null>(null)
 
   const activeCableIds = useMemo(
     () => new Set(cablesForScenario(state.scenarioId).map((c) => c.id)),
     [state.scenarioId],
   )
   const selected = devices.find((d) => d.id === state.selectedDeviceId)
+  const hovered = devices.find((d) => d.id === hoveredId)
 
   return (
     <div className="app">
@@ -33,7 +41,7 @@ export default function App() {
           {VIEWS.map((v) => (
             <button
               key={v.id}
-              className={`chip${state.view === v.id ? ' is-on' : ''}`}
+              className={`chip${state.viewMode === v.id ? ' is-on' : ''}`}
               onClick={() => dispatch({ type: 'setView', view: v.id })}
             >
               {v.label}
@@ -66,17 +74,39 @@ export default function App() {
 
       <main>
         <section className="stage">
-          <SceneView
-            view={state.view}
-            desk={desk}
-            deskHeight={state.deskHeight}
-            devices={devices}
-            cables={cables}
-            activeCableIds={activeCableIds}
-            selectedDeviceId={state.selectedDeviceId}
-            onSelect={(id) => dispatch({ type: 'selectDevice', id })}
-            onMove={(id, pos) => dispatch({ type: 'moveDevice', id, pos })}
-          />
+          {state.viewMode === '3d' ? (
+            <Scene3D
+              desk={desk}
+              deskHeight={state.deskHeight}
+              devices={devices}
+              cables={cables}
+              activeCableIds={activeCableIds}
+              selectedDeviceId={state.selectedDeviceId}
+              onSelect={(id) => dispatch({ type: 'selectDevice', id })}
+              onHover={setHoveredId}
+            />
+          ) : (
+            <SceneView
+              view={state.viewMode}
+              desk={desk}
+              deskHeight={state.deskHeight}
+              devices={devices}
+              cables={cables}
+              activeCableIds={activeCableIds}
+              selectedDeviceId={state.selectedDeviceId}
+              onSelect={(id) => dispatch({ type: 'selectDevice', id })}
+              onMove={(id, pos) => dispatch({ type: 'moveDevice', id, pos })}
+            />
+          )}
+          <p className="stage-hint">
+            {hovered ? (
+              <b className="hovered">{hovered.name}</b>
+            ) : state.viewMode === '3d' ? (
+              '드래그로 회전 · 휠로 확대 · 기기 클릭으로 선택'
+            ) : (
+              '기기를 드래그해 배치를 옮긴다 · 이 뷰가 다루는 축만 바뀐다'
+            )}
+          </p>
         </section>
 
         <aside>
