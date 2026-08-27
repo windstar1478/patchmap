@@ -1,6 +1,6 @@
 import type { Cable, Desk, Device } from '../data/types'
 import { indexDevices } from '../model/mount'
-import { indexPorts, maxDeskHeight } from '../model/derive'
+import { indexPorts, maxDeskHeight, shortagesAt } from '../model/derive'
 import type { SlackRule } from '../model/geometry'
 
 export function HeightPanel({
@@ -8,36 +8,66 @@ export function HeightPanel({
   devices,
   desk,
   slack,
+  workingHeight,
   onSlack,
+  onWorkingHeight,
 }: {
   cables: Cable[]
   devices: Device[]
   desk: Desk
   slack: SlackRule
+  workingHeight: number
   onSlack: (s: Partial<SlackRule>) => void
+  onWorkingHeight: (mm: number) => void
 }) {
   const index = indexDevices(devices)
   const ports = indexPorts(devices)
   const ceiling = maxDeskHeight(cables, ports, index, desk, slack)
-  const blocked = ceiling.shortAtMin.length > 0
+  const short = shortagesAt(cables, workingHeight, ports, index, slack)
   const nameOf = (id: string) => cables.find((c) => c.id === id)?.name ?? id
 
   return (
     <div className="panel">
-      <h2>상승 한계</h2>
-      <div className={`big ${blocked ? 'over' : 'ok'}`}>
-        {blocked ? '상승 불가' : `${ceiling.maxHeight} `}
-        {!blocked && <small>mm</small>}
+      <h2>실사용 높이에서의 판정</h2>
+      <label className="slider-row">
+        <span>실사용 높이</span>
+        <input
+          type="range"
+          min={desk.hMin}
+          max={desk.hMax}
+          step={10}
+          value={workingHeight}
+          onChange={(e) => onWorkingHeight(Number(e.target.value))}
+        />
+        <b>{workingHeight}mm</b>
+      </label>
+      <div className={`big ${short.length > 0 ? 'over' : 'ok'}`}>
+        {short.length > 0 ? `부족 ${short.length}건` : '전부 충분'}
       </div>
+      {short.length > 0 ? (
+        <ul className="load-list">
+          {short.map((f) => (
+            <li key={f.cable.id}>
+              <span>{f.cable.name}</span>
+              <b className="bad">{Math.round(f.marginMm!)} mm</b>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="hint">이 높이에서는 모든 경계 케이블이 여유를 만족한다.</p>
+      )}
+
+      <h3>전 구간(630~1280) 기준</h3>
       <p className="hint">
-        {blocked ? (
+        {ceiling.shortAtMin.length > 0 ? (
           <>
-            최저 {desk.hMin}mm 에서도 길이가 모자란 케이블이 있다:{' '}
+            최저 {desk.hMin}mm 에서도 모자란 케이블:{' '}
             <b>{ceiling.shortAtMin.map((l) => nameOf(l.cableId)).join(', ')}</b>
           </>
         ) : (
           <>
-            한계를 만드는 케이블: <b>{ceiling.limitedBy.map((l) => nameOf(l.cableId)).join(', ')}</b>
+            최대 <b>{ceiling.maxHeight}mm</b> 까지. 한계를 만드는 케이블:{' '}
+            <b>{ceiling.limitedBy.map((l) => nameOf(l.cableId)).join(', ')}</b>
           </>
         )}
       </p>
@@ -67,7 +97,8 @@ export function HeightPanel({
         <b>{slack.fixedMm}mm</b>
       </label>
       <p className="hint">
-        결론이 이 두 값에 크게 좌우된다. 여유 0에서도 <code>c-usb-st</code> 때문에 711mm 에서 막힌다.
+        결론이 이 두 값에 크게 좌우된다. 실사용 710mm 에서 <code>c-usb-st</code> 는 여유 0일 때
+        딱 +1mm 남는다 — 사실상 길이가 없는 셈이다.
       </p>
     </div>
   )

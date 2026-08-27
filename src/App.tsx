@@ -85,7 +85,9 @@ export default function App() {
             devices={devices}
             desk={desk}
             slack={state.slack}
+            workingHeight={state.workingHeight}
             onSlack={(slack) => dispatch({ type: 'setSlack', slack })}
+            onWorkingHeight={(mm) => dispatch({ type: 'setWorkingHeight', mm })}
           />
           <LoadPanel devices={devices} desk={desk} deskHeight={state.deskHeight} />
           <ScenarioPanel

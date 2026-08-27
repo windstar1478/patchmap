@@ -5,12 +5,17 @@ import type { View } from './model/geometry'
 import { DEFAULT_SLACK, type SlackRule } from './model/geometry'
 
 /** 저장 스키마 버전. data.json 이 바뀌면 올린다 (M8 기본값: 불일치 시 초기화). */
-export const SCHEMA_VERSION = 1
+export const SCHEMA_VERSION = 2
 const STORAGE_KEY = 'patchmap:v1'
+
+/** 질문 6 답변: 평소 700~710mm 에서 쓴다. 위쪽을 잡아 710 을 기준으로 둔다. */
+export const DEFAULT_WORKING_HEIGHT = 710
 
 export interface State {
   view: View
   deskHeight: number
+  /** 평소 실제로 쓰는 높이. 판정의 기준점 — 전 구간을 만족시킬 필요는 없다. */
+  workingHeight: number
   scenarioId: string
   includePlanned: boolean
   slack: SlackRule
@@ -27,7 +32,8 @@ export interface State {
 
 const initial: State = {
   view: 'front',
-  deskHeight: desk.hMin,
+  deskHeight: DEFAULT_WORKING_HEIGHT,
+  workingHeight: DEFAULT_WORKING_HEIGHT,
   scenarioId: 'all',
   includePlanned: false,
   slack: DEFAULT_SLACK,
@@ -42,6 +48,7 @@ const initial: State = {
 export type Action =
   | { type: 'setView'; view: View }
   | { type: 'setDeskHeight'; mm: number }
+  | { type: 'setWorkingHeight'; mm: number }
   | { type: 'setScenario'; id: string }
   | { type: 'togglePlanned' }
   | { type: 'setSlack'; slack: Partial<SlackRule> }
@@ -59,6 +66,8 @@ function reducer(s: State, a: Action): State {
       return { ...s, view: a.view }
     case 'setDeskHeight':
       return { ...s, deskHeight: clamp(a.mm, desk.hMin, desk.hMax) }
+    case 'setWorkingHeight':
+      return { ...s, workingHeight: clamp(a.mm, desk.hMin, desk.hMax) }
     case 'setScenario':
       return { ...s, scenarioId: a.id }
     case 'togglePlanned':

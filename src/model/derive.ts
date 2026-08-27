@@ -158,6 +158,20 @@ export function maxDeskHeight(
   }
 }
 
+/** 특정 높이에서 길이가 모자란 케이블들. 실사용 높이 판정에 쓴다. */
+export function shortagesAt(
+  cables: readonly Cable[],
+  height: number,
+  ports: PortIndex,
+  devices: DeviceIndex,
+  slack: SlackRule = DEFAULT_SLACK,
+): CableFit[] {
+  return cables
+    .map((c) => cableFit(c, height, ports, devices, slack))
+    .filter((f) => f.status === 'short')
+    .sort((a, b) => (a.marginMm ?? 0) - (b.marginMm ?? 0))
+}
+
 /* ---------- 하중 ---------- */
 
 export interface LoadSummary {

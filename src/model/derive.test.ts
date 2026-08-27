@@ -13,6 +13,7 @@ import {
   portConflicts,
   totalLoad,
   typeMismatch,
+  shortagesAt,
   underDeskClearance,
 } from './derive'
 
@@ -136,6 +137,46 @@ describe('상판 높이 한계 — 점검결과 A', () => {
     const ceiling = maxDeskHeight(generous, pIndex, dIndex, desk, DEFAULT_SLACK)
     expect(ceiling.maxHeight).toBe(desk.hMax)
     expect(ceiling.shortAtMin).toEqual([])
+  })
+})
+
+describe('실사용 높이 710mm — 질문 6 답변 반영', () => {
+  const H = 710
+
+  it('기본 여유에서는 세 가닥이 모자란다', () => {
+    const short = shortagesAt(cables, H, pIndex, dIndex, DEFAULT_SLACK)
+    expect(short.map((f) => f.cable.id).sort()).toEqual(['c-dp-mon', 'c-usb-mon', 'c-usb-st'])
+  })
+
+  it('여유 10%로 낮추면 c-usb-st 만 남는다', () => {
+    const short = shortagesAt(cables, H, pIndex, dIndex, { ratio: 0.1, fixedMm: 0 })
+    expect(short.map((f) => f.cable.id)).toEqual(['c-usb-st'])
+  })
+
+  it('c-usb-st 는 여유 0에서 겨우 1mm 남는다 — 사실상 길이가 없다', () => {
+    const fit = cableFit(
+      cables.find((c) => c.id === 'c-usb-st')!,
+      H,
+      pIndex,
+      dIndex,
+      { ratio: 0, fixedMm: 0 },
+    )
+    expect(Math.round(fit.marginMm!)).toBe(1)
+  })
+
+  it('c-usb-st 를 2m 로 바꾸면 기본 여유에서도 전부 충분해진다', () => {
+    const swapped = cables.map((c) => (c.id === 'c-usb-st' ? { ...c, lengthMm: 2000 } : c))
+    // 모니터 두 가닥도 함께 걸리므로, 그것까지 2m 로 두면 완전히 해소된다.
+    const all2m = swapped.map((c) =>
+      ['c-dp-mon', 'c-usb-mon'].includes(c.id) ? { ...c, lengthMm: 2000 } : c,
+    )
+    expect(shortagesAt(all2m, H, pIndex, dIndex, DEFAULT_SLACK)).toEqual([])
+  })
+
+  it('평소 쓰는 높이는 최저 630 보다 위이므로, 630 기준 판정보다 빡빡하다', () => {
+    const at630 = shortagesAt(cables, 630, pIndex, dIndex, { ratio: 0.1, fixedMm: 0 })
+    const at710 = shortagesAt(cables, H, pIndex, dIndex, { ratio: 0.1, fixedMm: 0 })
+    expect(at710.length).toBeGreaterThanOrEqual(at630.length)
   })
 })
 
