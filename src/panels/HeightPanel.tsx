@@ -49,7 +49,10 @@ export function HeightPanel({
           {short.map((f) => (
             <li key={f.cable.id}>
               <span>{f.cable.name}</span>
-              <b className="bad">{Math.round(f.marginMm!)} mm</b>
+              <b className="bad">
+                {Math.round(f.marginMm!)} mm
+                {f.recommendMm && <em> → {f.recommendMm / 1000}m 면 해결</em>}
+              </b>
             </li>
           ))}
         </ul>

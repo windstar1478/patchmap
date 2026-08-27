@@ -10,7 +10,7 @@ import type {
   SetupData,
 } from '../data/types'
 import { absoluteY, lineageOf, type DeviceIndex, type Lineage } from './mount'
-import { applySlack, pathLength, DEFAULT_SLACK, type SlackRule } from './geometry'
+import { applySlack, pathLength, recommendedLength, DEFAULT_SLACK, type SlackRule } from './geometry'
 
 export type PortIndex = ReadonlyMap<PortId, { port: Port; deviceId: DeviceId }>
 
@@ -73,6 +73,8 @@ export interface CableFit {
   /** 보유 - 필요. 음수면 부족. */
   marginMm: number | undefined
   status: 'ok' | 'short' | 'unknown'
+  /** 부족할 때, 사서 바꾸면 되는 가장 짧은 규격 길이. */
+  recommendMm?: number
 }
 
 export function cableFit(
@@ -89,7 +91,16 @@ export function cableFit(
     return { cable, crosses, required, have, marginMm: undefined, status: 'unknown' }
   }
   const marginMm = have - required
-  return { cable, crosses, required, have, marginMm, status: marginMm >= 0 ? 'ok' : 'short' }
+  if (marginMm >= 0) return { cable, crosses, required, have, marginMm, status: 'ok' }
+  return {
+    cable,
+    crosses,
+    required,
+    have,
+    marginMm,
+    status: 'short',
+    recommendMm: recommendedLength(required),
+  }
 }
 
 export interface HeightLimit {

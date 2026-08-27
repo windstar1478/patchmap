@@ -22,6 +22,7 @@ export function CableTable({ cables, devices, deskHeight, slack, activeCableIds,
       <h2>케이블</h2>
       <p className="hint">
         보유 길이를 실측값으로 바꾸면 <code>verified</code> 로 표시된다. 경계를 넘는 케이블만 상판 높이를 제한한다.
+        “권장”은 부족할 때 사면 되는 가장 짧은 규격 길이다.
       </p>
       <div className="table-scroll">
         <table>
@@ -31,6 +32,7 @@ export function CableTable({ cables, devices, deskHeight, slack, activeCableIds,
               <th className="num">보유</th>
               <th className="num">필요</th>
               <th className="num">여유</th>
+              <th className="num">권장</th>
               <th>비고</th>
             </tr>
           </thead>
@@ -59,6 +61,9 @@ export function CableTable({ cables, devices, deskHeight, slack, activeCableIds,
                   <td className="num">{fit.required === undefined ? '—' : Math.round(fit.required)}</td>
                   <td className={`num ${fit.status === 'short' ? 'bad' : fit.status === 'ok' ? 'good' : ''}`}>
                     {fit.marginMm === undefined ? '—' : `${fit.marginMm >= 0 ? '+' : ''}${Math.round(fit.marginMm)}`}
+                  </td>
+                  <td className="num">
+                    {fit.recommendMm ? <span className="tag tag-warn">{fit.recommendMm / 1000}m</span> : ''}
                   </td>
                   <td className="notes">
                     {c.verified === false && <span className="tag">추정</span>}

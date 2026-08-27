@@ -52,8 +52,9 @@ export function extentFor(dims: Device['dims'], view: View): { w: number; h: num
 /**
  * 케이블 여유(slack) 규칙.
  *
- * B2 미결정 상태의 기본값: 비례 15% + 고정 50mm.
- * 두 값 모두 UI에서 조절 가능하게 두어, 결정이 오면 상수만 바꾸면 되게 한다.
+ * 질문 5 답변("보수적으로 최소쯤"): 비례 10%, 고정 여유 없음.
+ * 0으로 두면 c-usb-st 가 +1mm 로 "충분" 판정을 받아 버려 신호가 죽는다.
+ * 10% 는 최소에 가까우면서 그 경계선을 놓치지 않는 지점이다.
  */
 export interface SlackRule {
   /** 경로 길이에 곱하는 여유 비율. 0.15 = 15% */
@@ -62,7 +63,15 @@ export interface SlackRule {
   fixedMm: number
 }
 
-export const DEFAULT_SLACK: SlackRule = { ratio: 0.15, fixedMm: 50 }
+export const DEFAULT_SLACK: SlackRule = { ratio: 0.1, fixedMm: 0 }
+
+/** 시중에서 실제로 파는 케이블 길이(mm). 권장 교체 길이는 여기서 고른다. */
+export const STANDARD_LENGTHS = [300, 500, 1000, 1500, 2000, 3000, 5000, 10000] as const
+
+/** 필요 길이를 만족하는 가장 짧은 규격 길이. 없으면 undefined. */
+export function recommendedLength(requiredMm: number): number | undefined {
+  return STANDARD_LENGTHS.find((l) => l >= requiredMm)
+}
 
 export function applySlack(pathMm: number, slack: SlackRule): number {
   return pathMm * (1 + slack.ratio) + slack.fixedMm
