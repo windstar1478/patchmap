@@ -235,7 +235,8 @@ export function Scene3D({
       content.add(leg)
     }
 
-    // 배선트레이 — 상판 하부에 걸린 ㄷ자 트레이
+    // 배선트레이 — 상판 하부 브라켓에 걸린 ㄷ자 트레이.
+    // 뒷판 중앙에 노치(배선홀)가 파여 있고, 그리로 멀티탭 배선이 들어온다.
     if (desk.tray) {
       const t = desk.tray
       const trayMat = new THREE.MeshStandardMaterial({ color: 0x6f6a5e, roughness: 1 })
@@ -246,23 +247,35 @@ export function Scene3D({
       bottom.position.set(t.x, floorY - wall / 2, trayZ)
       bottom.receiveShadow = true
       content.add(bottom)
-      for (const sZ of [-1, 1]) {
-        const side = new THREE.Mesh(new THREE.BoxGeometry(t.w, t.h, wall), trayMat)
-        side.position.set(t.x, floorY + t.h / 2, trayZ + sZ * (t.d / 2 + wall / 2))
-        content.add(side)
-      }
-    }
 
-    // 배선홀
-    if (desk.cableHole) {
-      const hole = desk.cableHole
-      const ring = new THREE.Mesh(
-        new THREE.RingGeometry(hole.dia / 2, hole.dia / 2 + 10, 28),
-        new THREE.MeshBasicMaterial({ color: 0x1a2429, side: THREE.DoubleSide }),
+      const notchW = desk.cableHole?.dia ?? 60
+      const rearZ = trayZ - (t.d / 2 + wall / 2) // 뒷판은 사용자에게서 먼 쪽
+      const frontZ = trayZ + (t.d / 2 + wall / 2)
+
+      // 앞판은 통짜
+      const front = new THREE.Mesh(new THREE.BoxGeometry(t.w, t.h, wall), trayMat)
+      front.position.set(t.x, floorY + t.h / 2, frontZ)
+      content.add(front)
+
+      // 뒷판은 가운데를 비워 노치를 만든다
+      const sideW = (t.w - notchW) / 2
+      for (const dir of [-1, 1]) {
+        const seg = new THREE.Mesh(new THREE.BoxGeometry(sideW, t.h, wall), trayMat)
+        seg.position.set(t.x + dir * (notchW / 2 + sideW / 2), floorY + t.h / 2, rearZ)
+        content.add(seg)
+      }
+      // 노치 위쪽은 막혀 있다 (아래로 파인 홈)
+      const lintel = new THREE.Mesh(new THREE.BoxGeometry(notchW, t.h * 0.32, wall), trayMat)
+      lintel.position.set(t.x, floorY + t.h - (t.h * 0.32) / 2, rearZ)
+      content.add(lintel)
+
+      // 배선홀 표시
+      const mark = new THREE.Mesh(
+        new THREE.RingGeometry(notchW / 2, notchW / 2 + 9, 24),
+        new THREE.MeshBasicMaterial({ color: 0x3fc4d4, side: THREE.DoubleSide }),
       )
-      ring.rotation.x = -Math.PI / 2
-      ring.position.set(hole.x, deskHeight + 1, sz(hole.z, desk.d))
-      content.add(ring)
+      mark.position.set(t.x, floorY + t.h * 0.34, rearZ - wall)
+      content.add(mark)
     }
 
     // 기기

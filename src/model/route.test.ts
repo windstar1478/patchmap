@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { desk, devices, plannedDevices } from '../data/setup'
-import { indexDevices } from './mount'
+import { absoluteY, indexDevices } from './mount'
 import { corridorLevel, routeCable, routeLength } from './route'
 
 const dIndex = indexDevices([...devices, ...plannedDevices])
@@ -23,6 +23,30 @@ describe('배선 경로', () => {
     expect(desk.tray!.w).toBe(660)
     expect(desk.tray!.h).toBe(140)
     expect(desk.cableHole).toBeDefined()
+  })
+
+  it('배선홀은 트레이 뒷판 중앙의 노치다 — 상판에 뚫린 구멍이 아니다', () => {
+    const hole = desk.cableHole!
+    const tray = desk.tray!
+    expect(hole.verified).toBe(true)
+    expect(hole.x).toBe(tray.x) // 중앙
+    expect(hole.z).toBeGreaterThan(tray.z) // 트레이 뒷판 쪽
+    expect(hole.z).toBeLessThanOrEqual(tray.z + tray.d)
+  })
+
+  it('모니터는 좌측 30% 후면 클램프의 모니터암을 따라 높이가 정해진다', () => {
+    const arm = dIndex.get('arm')!
+    const monitor = dIndex.get('monitor')!
+    expect(arm.pos.x).toBe(Math.round(desk.w * 0.3))
+    expect(arm.pos.z).toBeGreaterThan(desk.d * 0.9) // 후면
+    expect(monitor.mount).toEqual({ on: 'arm' })
+    // 암 윗면에 그대로 얹힌다
+    expect(absoluteY('monitor', H, dIndex)).toBe(absoluteY('arm', H, dIndex) + arm.dims.h)
+  })
+
+  it('받침대가 트레이 뒷판 노치보다 앞에 있다', () => {
+    const stand = dIndex.get('stand')!
+    expect(stand.pos.z + stand.dims.d / 2).toBeLessThan(desk.cableHole!.z)
   })
 
   it('멀티탭이 트레이 안에 들어간다', () => {

@@ -100,8 +100,8 @@ export function HeightPanel({
         <b>{slack.fixedMm}mm</b>
       </label>
       <p className="hint">
-        결론이 이 두 값에 크게 좌우된다. 실사용 710mm 에서 <code>c-usb-st</code> 는 여유 0일 때
-        딱 +1mm 남는다 — 사실상 길이가 없는 셈이다.
+        케이블은 배선트레이 뒷판 중앙의 노치로 들어간다. 직선 거리보다 한참 돌아가므로,
+        여유를 0으로 낮춰도 부족분이 남는다 — 여유율이 아니라 경로가 결론을 결정한다.
       </p>
     </div>
   )
