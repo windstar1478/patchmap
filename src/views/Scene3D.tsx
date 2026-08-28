@@ -248,7 +248,6 @@ export function Scene3D({
       bottom.receiveShadow = true
       content.add(bottom)
 
-      const notchW = desk.cableHole?.dia ?? 60
       const rearZ = trayZ - (t.d / 2 + wall / 2) // 뒷판은 사용자에게서 먼 쪽
       const frontZ = trayZ + (t.d / 2 + wall / 2)
 
@@ -257,25 +256,21 @@ export function Scene3D({
       front.position.set(t.x, floorY + t.h / 2, frontZ)
       content.add(front)
 
-      // 뒷판은 가운데를 비워 노치를 만든다
-      const sideW = (t.w - notchW) / 2
-      for (const dir of [-1, 1]) {
-        const seg = new THREE.Mesh(new THREE.BoxGeometry(sideW, t.h, wall), trayMat)
-        seg.position.set(t.x + dir * (notchW / 2 + sideW / 2), floorY + t.h / 2, rearZ)
-        content.add(seg)
-      }
-      // 노치 위쪽은 막혀 있다 (아래로 파인 홈)
-      const lintel = new THREE.Mesh(new THREE.BoxGeometry(notchW, t.h * 0.32, wall), trayMat)
-      lintel.position.set(t.x, floorY + t.h - (t.h * 0.32) / 2, rearZ)
-      content.add(lintel)
+      // 뒷판은 가운데가 넓게 휘어져 파여 있다 — 그 홈으로 배선이 들어간다.
+      const rear = new THREE.Mesh(rearPanelGeometry(t.w, t.h, wall, desk.cableHole), trayMat)
+      rear.position.set(t.x, floorY, rearZ)
+      content.add(rear)
 
-      // 배선홀 표시
-      const mark = new THREE.Mesh(
-        new THREE.RingGeometry(notchW / 2, notchW / 2 + 9, 24),
-        new THREE.MeshBasicMaterial({ color: 0x3fc4d4, side: THREE.DoubleSide }),
-      )
-      mark.position.set(t.x, floorY + t.h * 0.34, rearZ - wall)
-      content.add(mark)
+      if (desk.cableHole) {
+        const hole = desk.cableHole
+        const mark = new THREE.Mesh(
+          new THREE.TorusGeometry(hole.w * 0.3, 4, 8, 28, Math.PI),
+          new THREE.MeshBasicMaterial({ color: 0x3fc4d4 }),
+        )
+        mark.rotation.z = Math.PI
+        mark.position.set(t.x, floorY + t.h - hole.h, rearZ - wall)
+        content.add(mark)
+      }
     }
 
     // 기기
@@ -342,6 +337,35 @@ export function Scene3D({
   }, [desk, deskHeight, devices, cables, activeCableIds, selectedDeviceId])
 
   return <div ref={hostRef} className="scene3d" />
+}
+
+/**
+ * 가운데가 넓게 휘어져 파인 뒷판. 원점은 판의 아래 모서리 중앙.
+ * 사진의 배선트레이 뒷판 형태를 따른다 — 좁은 원형 구멍이 아니다.
+ */
+function rearPanelGeometry(
+  w: number,
+  h: number,
+  thickness: number,
+  hole: { w: number; h: number } | undefined,
+): THREE.BufferGeometry {
+  const shape = new THREE.Shape()
+  shape.moveTo(-w / 2, 0)
+  shape.lineTo(w / 2, 0)
+  shape.lineTo(w / 2, h)
+  if (hole) {
+    const half = Math.min(hole.w, w * 0.9) / 2
+    const depth = Math.min(hole.h, h * 0.85)
+    shape.lineTo(half, h)
+    // 완만하게 내려갔다 다시 올라오는 홈
+    shape.bezierCurveTo(half * 0.45, h, half * 0.45, h - depth, 0, h - depth)
+    shape.bezierCurveTo(-half * 0.45, h - depth, -half * 0.45, h, -half, h)
+  }
+  shape.lineTo(-w / 2, h)
+  shape.closePath()
+  const geo = new THREE.ExtrudeGeometry(shape, { depth: thickness, bevelEnabled: false })
+  geo.translate(0, 0, -thickness / 2)
+  return geo
 }
 
 function setEmissive(mesh: THREE.Mesh, color: number) {
