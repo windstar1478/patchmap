@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>deskrise — 모션데스크 실측 배치 + 케이블 여유</title>
+<style>
+:root{--bg:#17181b;--panel:#232428;--panel-2:#2a2c31;--border:#34363b;
+--text:#e9e6df;--muted:#8b8d93;--accent:#d99a3f;--warn:#c1443a;--ok:#5ea89a;--blue:#5b8bb0;}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--text);
+font-family:'IBM Plex Sans KR',system-ui,-apple-system,sans-serif;height:100vh;overflow:hidden;}
+.app{display:flex;height:100vh;}
+.sidebar{width:275px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--border);
+padding:18px 16px;overflow-y:auto;}
+.brand{font-size:13px;letter-spacing:.14em;color:var(--accent);font-family:ui-monospace,monospace;text-transform:uppercase;}
+.brand-sub{font-size:11.5px;color:var(--muted);margin:4px 0 14px;line-height:1.55;}
+.section-label{font-family:ui-monospace,monospace;font-size:11px;color:var(--muted);
+text-transform:uppercase;letter-spacing:.08em;margin:16px 0 7px;}
+.hval{font-size:29px;font-family:ui-monospace,monospace;color:var(--accent);line-height:1;}
+.hval span{font-size:13px;color:var(--muted);}
+input[type=range]{width:100%;margin:11px 0 6px;accent-color:var(--accent);}
+.presets{display:flex;gap:5px;}
+.presets button{flex:1;background:var(--panel-2);border:1px solid var(--border);color:var(--text);
+border-radius:5px;padding:6px 3px;font-size:11px;cursor:pointer;font-family:inherit;}
+.presets button:hover{border-color:var(--accent);}
+.row{display:flex;justify-content:space-between;align-items:center;font-size:11.5px;
+padding:5px 0;border-bottom:1px solid var(--border);gap:6px;}
+.row:last-child{border-bottom:none;}
+.row .nm{flex:1;line-height:1.35;}
+.row .dim{font-family:ui-monospace,monospace;font-size:9.5px;color:var(--muted);display:block;}
+.mt{font-family:ui-monospace,monospace;font-size:10px;padding:2px 5px;border-radius:3px;cursor:pointer;flex-shrink:0;}
+.mt.desk{background:#33302a;color:var(--accent);}
+.mt.floor{background:#26313a;color:var(--blue);}
+.numin{width:62px;background:var(--bg);border:1px solid var(--border);color:var(--text);
+padding:4px 5px;border-radius:4px;font-size:11px;font-family:ui-monospace,monospace;text-align:right;}
+.load{background:var(--panel-2);border-radius:6px;padding:10px;font-size:12px;line-height:1.7;}
+.load b{font-family:ui-monospace,monospace;color:var(--accent);}
+.bar{height:6px;background:#1b1c1f;border-radius:3px;margin-top:7px;overflow:hidden;}
+.bar i{display:block;height:100%;background:var(--ok);}
+.hint{font-size:11px;color:var(--muted);margin-top:12px;line-height:1.65;}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.stage{flex:1;padding:14px;overflow:hidden;}
+svg#scene{width:100%;height:100%;}
+.panel-bottom{height:262px;flex-shrink:0;background:var(--panel);border-top:1px solid var(--border);
+padding:13px 18px;overflow-y:auto;}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+th{text-align:left;font-family:ui-monospace,monospace;font-size:10px;color:var(--muted);
+text-transform:uppercase;letter-spacing:.06em;padding:5px 8px;border-bottom:1px solid var(--border);font-weight:400;}
+td{padding:6px 8px;border-bottom:1px solid var(--border);}
+tr.bad td{background:rgba(193,68,58,.10);}
+tr.cross td:first-child{border-left:2px solid var(--accent);}
+.verdict{font-family:ui-monospace,monospace;font-size:11px;padding:2px 7px;border-radius:3px;display:inline-block;}
+.verdict.ok{background:rgba(94,168,154,.16);color:var(--ok);}
+.verdict.bad{background:rgba(193,68,58,.18);color:#e0736a;}
+.verdict.na{background:var(--panel-2);color:var(--muted);}
+.sum{font-size:12px;color:var(--muted);margin-bottom:9px;line-height:1.6;}
+.sum b{color:var(--text);}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="sidebar">
+  <div class="brand">deskrise</div>
+  <div class="brand-sub">정면도. 데스커 모션데스크 프리미엄 1800×800 / 630~1280mm 기준. 기기 크기는 실제 제품 치수로 그렸습니다.</div>
+
+  <div class="section-label">상판 높이</div>
+  <div class="hval" id="hLabel">630<span> mm</span></div>
+  <input type="range" id="hSlider" min="630" max="1280" value="630" step="10">
+  <div class="presets"><button data-h="630">최저</button><button data-h="740">앉음</button><button data-h="1100">섬</button><button data-h="1280">최고</button></div>
+
+  <div class="section-label">상판 하중</div>
+  <div class="load" id="loadBox"></div>
+
+  <div class="section-label">여유(굽힘·정리분)</div>
+  <div class="row"><span class="nm">고정 여유</span>
+    <input class="numin" id="slack" type="number" value="200" step="10"><span style="font-size:11px;color:var(--muted)">mm</span></div>
+
+  <div class="section-label">기기 고정 위치</div>
+  <div id="devList"></div>
+
+  <div class="hint">배지를 눌러 상판↔바닥을 바꿉니다. <b>PC 본체</b>를 상판으로 바꾸면 언더데스크 거치 시 상태가 됩니다.</div>
+</div>
+
+<div class="main">
+  <div class="stage"><svg id="scene" viewBox="0 0 2150 1950" preserveAspectRatio="xMidYMid meet"></svg></div>
+  <div class="panel-bottom">
+    <div class="sum" id="summary"></div>
+    <table><thead><tr><th>케이블</th><th>경계</th><th>보유 길이</th><th>필요 길이</th><th>여유</th><th></th></tr></thead>
+    <tbody id="tbody"></tbody></table>
+  </div>
+</div>
+</div>
+
+<script>
+/* 좌표: X = 책상 왼쪽 끝 기준 mm, Y = 바닥 기준 mm.
+   mount 'desk' → yOff = 상판 윗면 기준 상대높이(음수=상판 하부)
+   mount 'floor'→ yOff = 바닥 기준 절대높이(기기 밑면)
+   w,h = 정면에서 본 폭·높이(mm). kg = 무게. */
+const DESK={W:1800,D:800,thick:25,legInset:110,legW:60,hMin:630,hMax:1280,cap:100};
+let H=630;
+
+let devices=[
+ {id:'pc',   name:'잘만 P50(+바퀴 받침대)',  mount:'floor', x:1320, yOff:80,  w:240,h:512, kg:14, note:'케이스 10.5kg + 내부 부품'},
+ {id:'wall', name:'벽 콘센트',            mount:'floor', x:540,  yOff:250, w:120,h:80,  kg:0, fixed:true},
+ {id:'strip',name:'멀티탭(상판 하부)',     mount:'desk',  x:700,  yOff:-95, w:340,h:55,  kg:0.6},
+ {id:'stand',name:'데스커 받침대 W1000',   mount:'desk',  x:900,  yOff:0,   w:1000,h:90, kg:2.4},
+ {id:'pad',  name:'무선충전 패드',         mount:'desk',  x:560,  yOff:90,  w:110,h:12,  kg:0},
+ {id:'dock', name:'NS2 독(세로)',          mount:'desk',  x:790,  yOff:90,  w:145,h:125, kg:1.2},
+ {id:'itf',  name:'스칼렛 2i2',            mount:'desk',  x:1190, yOff:0,   w:175,h:48,  kg:0.6},
+ {id:'mon',  name:'모니터 32GR75Q(암)',    mount:'desk',  x:900,  yOff:200, w:714,h:425, kg:6.5},
+ {id:'arm',  name:'모니터암',              mount:'desk',  x:900,  yOff:0,   w:60,h:200,  kg:3.5},
+ {id:'spkL', name:'MR4 좌',                mount:'desk',  x:95,   yOff:0,   w:140,h:228, kg:2.3},
+ {id:'spkR', name:'MR4 우',                mount:'desk',  x:1705, yOff:0,   w:140,h:228, kg:2.2},
+ {id:'hps',  name:'헤드폰 거치대(2구)',     mount:'desk',  x:1705, yOff:228, w:210,h:300, kg:1.4},
+ {id:'mon2', name:'세로 모니터(예정)',      mount:'desk',  x:1450, yOff:200, w:425,h:714, kg:5.0},
+];
+
+let cables=[
+ {id:'c1',name:'PC 전원 → 멀티탭',         a:'pc',   b:'strip', actual:1800},
+ {id:'c2',name:'DP → 모니터',              a:'pc',   b:'mon',   actual:1500},
+ {id:'c3',name:'USB → 2i2',                a:'pc',   b:'itf',   actual:1500},
+ {id:'c4',name:'USB-B → 모니터 허브',      a:'pc',   b:'mon',   actual:1500},
+ {id:'c5',name:'USB → 데스커 받침대',       a:'pc',   b:'stand', actual:1000},
+ {id:'c6',name:'멀티탭 전원 → 벽 콘센트',   a:'strip',b:'wall',  actual:1500},
+ {id:'c7',name:'DP → 세로 모니터(예정)',    a:'pc',   b:'mon2',  actual:1500},
+ {id:'c8',name:'2i2 → MR4 좌 (TRS)',       a:'itf',  b:'spkL',  actual:3000},
+ {id:'c9',name:'2i2 → MR4 우 (TRS)',       a:'itf',  b:'spkR',  actual:3000},
+ {id:'c10',name:'NS2 어댑터 → 멀티탭',      a:'dock', b:'strip', actual:1500},
+ {id:'c11',name:'스피커 전원 → 멀티탭',     a:'spkL', b:'strip', actual:1500},
+];
+
+const D=id=>devices.find(d=>d.id===id);
+const pos=(d,h)=>({x:d.x, y:(d.mount==='desk'? h+d.yOff+d.h/2 : d.yOff+d.h/2)});
+const pathLen=(c,h)=>{const A=pos(D(c.a),h),B=pos(D(c.b),h);return Math.abs(A.x-B.x)+Math.abs(A.y-B.y);};
+const crosses=c=>D(c.a).mount!==D(c.b).mount;
+
+const OX=170, OY=1830, S=0.86;
+const px=p=>({x:OX+p.x*S, y:OY-p.y*S});
+const scene=document.getElementById('scene');
+
+function draw(){
+  const slack=+document.getElementById('slack').value||0;
+  let s='';
+  s+=`<line x1="0" y1="${OY}" x2="2150" y2="${OY}" stroke="#3a3d42" stroke-width="3"/>`;
+  for(let i=0;i<2150;i+=30) s+=`<line x1="${i}" y1="${OY}" x2="${i-13}" y2="${OY+13}" stroke="#2b2e33" stroke-width="2"/>`;
+
+  const topY=OY-H*S, dx0=OX, dx1=OX+DESK.W*S;
+  [DESK.legInset, DESK.W-DESK.legInset-DESK.legW].forEach(lx=>{
+    s+=`<rect x="${OX+lx*S}" y="${topY}" width="${DESK.legW*S}" height="${OY-topY}" fill="#2c2e33" stroke="#3d4046"/>`;});
+  s+=`<rect x="${dx0}" y="${topY-DESK.thick*S}" width="${dx1-dx0}" height="${DESK.thick*S}" fill="#3a3126" stroke="var(--accent)" stroke-width="1.6" rx="2"/>`;
+  s+=`<line x1="${dx0-40}" y1="${OY}" x2="${dx0-40}" y2="${topY}" stroke="#55585e" stroke-dasharray="5,5"/>
+      <text x="${dx0-48}" y="${(OY+topY)/2}" fill="#8b8d93" font-size="19" text-anchor="end" font-family="ui-monospace,monospace">${H}</text>`;
+  s+=`<line x1="${dx0}" y1="${OY+42}" x2="${dx1}" y2="${OY+42}" stroke="#44474d"/>
+      <text x="${(dx0+dx1)/2}" y="${OY+62}" fill="#6e7076" font-size="16" text-anchor="middle" font-family="ui-monospace,monospace">1800</text>`;
+
+  cables.forEach(c=>{
+    const A=px(pos(D(c.a),H)),B=px(pos(D(c.b),H));
+    const need=pathLen(c,H)+slack, short=c.actual<need, cross=crosses(c);
+    const col=short?'#c1443a':(cross?'#d99a3f':'#4b4e54');
+    s+=`<polyline points="${A.x},${A.y} ${A.x},${B.y} ${B.x},${B.y}" fill="none" stroke="${col}"
+        stroke-width="${short?3.2:2}" stroke-opacity="${cross?0.95:0.35}" stroke-linejoin="round"
+        ${short?'stroke-dasharray="8,5"':''}/>`;
+  });
+
+  devices.forEach(d=>{
+    const cx=OX+d.x*S, w=d.w*S, hh=d.h*S;
+    const base=(d.mount==='desk')? OY-(H+d.yOff)*S : OY-(d.yOff)*S;
+    const y=base-hh;
+    const fill=d.mount==='desk'?'#33302a':'#26313a', st=d.mount==='desk'?'#d99a3f':'#5b8bb0';
+    s+=`<rect x="${cx-w/2}" y="${y}" width="${w}" height="${hh}" rx="3" fill="${fill}" stroke="${st}" stroke-width="1.4" fill-opacity="0.9"/>`;
+    s+=`<text x="${cx}" y="${y-8}" fill="#c9c6bf" font-size="17" text-anchor="middle">${d.name}</text>`;
+    s+=`<text x="${cx}" y="${y+hh/2+6}" fill="#7b7d83" font-size="14" text-anchor="middle" font-family="ui-monospace,monospace">${d.w}×${d.h}</text>`;
+  });
+  scene.innerHTML=s;
+}
+
+function maxHeightFor(c){
+  const slack=+document.getElementById('slack').value||0;
+  for(let h=DESK.hMax;h>=DESK.hMin;h-=10){ if(pathLen(c,h)+slack<=c.actual) return h; }
+  return null;
+}
+
+function renderTable(){
+  const slack=+document.getElementById('slack').value||0;
+  const tb=document.getElementById('tbody'); tb.innerHTML='';
+  let bad=0,cross=0,lim=[];
+  cables.forEach(c=>{
+    const need=Math.round(pathLen(c,H)+slack), cr=crosses(c), m=c.actual-need;
+    if(cr){cross++; const mh=maxHeightFor(c); lim.push({n:c.name,h:mh===null?DESK.hMin:mh});}
+    if(m<0)bad++;
+    const tr=document.createElement('tr'); tr.className=(m<0?'bad ':'')+(cr?'cross':'');
+    tr.innerHTML=`<td>${c.name}</td><td style="color:var(--muted);font-size:11px">${cr?'건넘':'—'}</td>
+      <td><input class="numin" type="number" step="100" value="${c.actual}" data-c="${c.id}"> mm</td>
+      <td style="font-family:ui-monospace,monospace">${need}</td>
+      <td style="font-family:ui-monospace,monospace;color:${m<0?'#e0736a':'var(--muted)'}">${m>=0?'+':''}${m}</td>
+      <td><span class="verdict ${m<0?'bad':cr?'ok':'na'}">${m<0?'부족':cr?'여유':'변화없음'}</span></td>`;
+    tb.appendChild(tr);
+  });
+  tb.querySelectorAll('input[data-c]').forEach(i=>i.addEventListener('input',()=>{
+    cables.find(x=>x.id===i.dataset.c).actual=+i.value||0; renderTable(); draw();}));
+  lim.sort((a,b)=>a.h-b.h);
+  document.getElementById('summary').innerHTML=
+    `경계를 건너는 케이블 <b>${cross}개</b> · 현재 높이에서 부족 <b>${bad}개</b>`+
+    (lim.length?` · 상승 한계를 결정하는 건 <b>${lim[0].n}</b> → 최대 <b>${lim[0].h} mm</b>`:` · 경계를 건너는 케이블 없음`);
+}
+
+function renderLoad(){
+  const on=devices.filter(d=>d.mount==='desk');
+  const kg=on.reduce((a,d)=>a+d.kg,0);
+  const pct=Math.min(100,kg/DESK.cap*100);
+  let extra='';
+  const pc=D('pc');
+  if(pc.mount==='desk'){
+    // 상판 하부에 매달았을 때 바닥까지 남는 틈
+    const clear=Math.round(DESK.hMin-DESK.thick-40-pc.h); // 40 = 홀더 하드웨어 두께 가정
+    const col=clear<0?'var(--warn)':clear<80?'var(--accent)':'var(--ok)';
+    extra=`<div style="margin-top:9px;padding-top:8px;border-top:1px solid var(--border);font-size:11.5px">
+      최저 높이(630)에서 본체 바닥~바닥면 틈<br>
+      <b style="color:${col};font-size:15px">${clear} mm</b>
+      <span style="color:var(--muted)">${clear<0?' · 바닥에 닿음':clear<80?' · 매우 빠듯':' · 여유'}</span></div>`;
+  }
+  document.getElementById('loadBox').innerHTML=
+    `상판 위 합계 <b>${kg.toFixed(1)} kg</b> / 정격 100 kg<br>
+     <span style="color:var(--muted);font-size:11px">기기 ${on.length}개 · 최대 분포하중 130 kg</span>
+     <div class="bar"><i style="width:${pct}%;background:${pct>80?'var(--warn)':'var(--ok)'}"></i></div>${extra}`;
+}
+
+function renderDevList(){
+  const el=document.getElementById('devList'); el.innerHTML='';
+  devices.forEach(d=>{
+    const r=document.createElement('div'); r.className='row';
+    r.innerHTML=`<span class="nm">${d.name}<span class="dim">${d.w}×${d.h}mm · ${d.kg}kg</span></span>
+      <span class="mt ${d.mount}">${d.mount==='desk'?'상판':'바닥'}</span>`;
+    if(!d.fixed) r.querySelector('.mt').addEventListener('click',()=>{
+      if(d.mount==='desk'){d.mount='floor'; d.yOff=Math.max(0,H+d.yOff);}
+      else {d.mount='desk'; d.yOff=d.yOff-H;}
+      renderDevList();renderLoad();renderTable();draw();});
+    el.appendChild(r);
+  });
+}
+
+const sl=document.getElementById('hSlider');
+const setH=v=>{H=v; sl.value=v; document.getElementById('hLabel').innerHTML=v+'<span> mm</span>'; renderLoad(); renderTable(); draw();};
+sl.addEventListener('input',()=>setH(+sl.value));
+document.querySelectorAll('.presets button').forEach(b=>b.addEventListener('click',()=>setH(+b.dataset.h)));
+document.getElementById('slack').addEventListener('input',()=>{renderTable();draw();});
+
+renderDevList();renderLoad();renderTable();draw();
+</script>
+</body>
+</html>
