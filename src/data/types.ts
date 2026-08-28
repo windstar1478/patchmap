@@ -101,16 +101,16 @@ export interface Tray {
 }
 
 /**
- * 배선트레이 뒷판 중앙에 파인 홈. 케이블이 여기로 들어가 트레이에 담긴다.
- * 좁은 원형 구멍이 아니라 넓게 휘어진 형태다.
+ * 상판 뒷변 중앙이 파인 배선홈. 케이블이 여기로 내려가 배선트레이에 담긴다.
+ * 트레이 뒷판이 아니라 상판 자체가 파여 있다.
  */
 export interface CableHole {
+  /** 홈 중심의 좌우 위치 */
   x: number
-  z: number
   /** 홈의 가로 폭 */
   w: number
-  /** 뒷판 위쪽에서 파인 깊이 */
-  h: number
+  /** 상판 뒷변에서 앞쪽으로 파고든 깊이 */
+  depth: number
   verified?: boolean
   notes?: string
 }

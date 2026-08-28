@@ -4,7 +4,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import type { Cable, Desk, Device, DeviceId } from '../data/types'
 import { absoluteCenter, indexDevices, lineageOf } from '../model/mount'
 import { indexPorts, ownerOf, routeOptsFor } from '../model/derive'
-import { routeCable } from '../model/route'
+import { cableHoleCenter, routeCable } from '../model/route'
 import { connectorOf } from '../data/setup'
 import { buildDevice } from './deviceShapes'
 
@@ -217,10 +217,10 @@ export function Scene3D({
     const index = indexDevices(devices)
     const ports = indexPorts(devices)
 
-    // 상판
+    // 상판 — 뒷변 중앙이 배선홈으로 파여 있다.
     const topMat = new THREE.MeshStandardMaterial({ color: 0x3b4f5a, roughness: 0.75 })
-    const top = new THREE.Mesh(new THREE.BoxGeometry(desk.w, desk.thickness, desk.d), topMat)
-    top.position.set(desk.w / 2, deskHeight - desk.thickness / 2, desk.d / 2)
+    const top = new THREE.Mesh(desktopGeometry(desk), topMat)
+    top.position.set(0, deskHeight, 0)
     top.castShadow = true
     top.receiveShadow = true
     content.add(top)
@@ -256,21 +256,22 @@ export function Scene3D({
       front.position.set(t.x, floorY + t.h / 2, frontZ)
       content.add(front)
 
-      // 뒷판은 가운데가 넓게 휘어져 파여 있다 — 그 홈으로 배선이 들어간다.
-      const rear = new THREE.Mesh(rearPanelGeometry(t.w, t.h, wall, desk.cableHole), trayMat)
-      rear.position.set(t.x, floorY, rearZ)
+      // 뒷판도 통짜다. 파인 곳은 상판 쪽이다.
+      const rear = new THREE.Mesh(new THREE.BoxGeometry(t.w, t.h, wall), trayMat)
+      rear.position.set(t.x, floorY + t.h / 2, rearZ)
       content.add(rear)
+    }
 
-      if (desk.cableHole) {
-        const hole = desk.cableHole
-        const mark = new THREE.Mesh(
-          new THREE.TorusGeometry(hole.w * 0.3, 4, 8, 28, Math.PI),
-          new THREE.MeshBasicMaterial({ color: 0x3fc4d4 }),
-        )
-        mark.rotation.z = Math.PI
-        mark.position.set(t.x, floorY + t.h - hole.h, rearZ - wall)
-        content.add(mark)
-      }
+    // 배선홈 표시 — 상판 뒷변에 파인 자리
+    const holeCenter = cableHoleCenter(desk)
+    if (holeCenter && desk.cableHole) {
+      const mark = new THREE.Mesh(
+        new THREE.TorusGeometry(desk.cableHole.w * 0.3, 5, 8, 28, Math.PI),
+        new THREE.MeshBasicMaterial({ color: 0x3fc4d4 }),
+      )
+      mark.rotation.x = -Math.PI / 2
+      mark.position.set(holeCenter.x, deskHeight + 3, sz(holeCenter.z, desk.d))
+      content.add(mark)
     }
 
     // 기기
@@ -340,31 +341,29 @@ export function Scene3D({
 }
 
 /**
- * 가운데가 넓게 휘어져 파인 뒷판. 원점은 판의 아래 모서리 중앙.
- * 사진의 배선트레이 뒷판 형태를 따른다 — 좁은 원형 구멍이 아니다.
+ * 상판. 뒷변 중앙이 배선홈으로 파여 있다.
+ * 셰이프는 씬 좌표(x, sceneZ)로 그린다 — 씬에서 z 를 뒤집으므로 뒷변이 sceneZ = 0 이다.
+ * 원점은 상판 윗면이고 아래로 두께만큼 내려간다.
  */
-function rearPanelGeometry(
-  w: number,
-  h: number,
-  thickness: number,
-  hole: { w: number; h: number } | undefined,
-): THREE.BufferGeometry {
+function desktopGeometry(desk: Desk): THREE.BufferGeometry {
   const shape = new THREE.Shape()
-  shape.moveTo(-w / 2, 0)
-  shape.lineTo(w / 2, 0)
-  shape.lineTo(w / 2, h)
+  const hole = desk.cableHole
+  shape.moveTo(0, 0)
   if (hole) {
-    const half = Math.min(hole.w, w * 0.9) / 2
-    const depth = Math.min(hole.h, h * 0.85)
-    shape.lineTo(half, h)
-    // 완만하게 내려갔다 다시 올라오는 홈
-    shape.bezierCurveTo(half * 0.45, h, half * 0.45, h - depth, 0, h - depth)
-    shape.bezierCurveTo(-half * 0.45, h - depth, -half * 0.45, h, -half, h)
+    const half = Math.min(hole.w, desk.w * 0.9) / 2
+    const cut = Math.min(hole.depth, desk.d * 0.5)
+    shape.lineTo(hole.x - half, 0)
+    // 완만하게 파고들었다 다시 나오는 홈
+    shape.bezierCurveTo(hole.x - half * 0.45, 0, hole.x - half * 0.45, cut, hole.x, cut)
+    shape.bezierCurveTo(hole.x + half * 0.45, cut, hole.x + half * 0.45, 0, hole.x + half, 0)
   }
-  shape.lineTo(-w / 2, h)
+  shape.lineTo(desk.w, 0)
+  shape.lineTo(desk.w, desk.d)
+  shape.lineTo(0, desk.d)
   shape.closePath()
-  const geo = new THREE.ExtrudeGeometry(shape, { depth: thickness, bevelEnabled: false })
-  geo.translate(0, 0, -thickness / 2)
+  const geo = new THREE.ExtrudeGeometry(shape, { depth: desk.thickness, bevelEnabled: false })
+  // 셰이프 평면을 눕히고, 두께가 아래로 향하게 한다.
+  geo.rotateX(Math.PI / 2)
   return geo
 }
 

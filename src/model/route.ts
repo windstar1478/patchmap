@@ -3,12 +3,19 @@ import { absoluteCenter, lineageOf, type DeviceIndex } from './mount'
 
 export type Point = { x: number; y: number; z: number }
 
+/** 상판 뒷변 배선홈의 중심 위치. 홈은 뒷변에서 앞으로 depth 만큼 파여 있다. */
+export function cableHoleCenter(desk: Desk): { x: number; z: number } | undefined {
+  const hole = desk.cableHole
+  if (!hole) return undefined
+  return { x: hole.x, z: desk.d - hole.depth / 2 }
+}
+
 /**
  * 케이블이 실제로 지나가는 경로.
  *
  * 직선으로 이으면 다른 기기를 관통한다. 실제로는 이렇게 간다:
  *  - 상판 위끼리     → 받침대 뒤쪽을 타고 넘어간다
- *  - 경계를 넘을 때  → 상판 배선홀로 내려가 배선트레이를 통과한다
+ *  - 경계를 넘을 때  → 상판 뒷변 배선홈으로 내려가 배선트레이를 통과한다
  *  - 상판 아래끼리   → 트레이 높이에서 바로 간다
  *
  * 순수 함수라 2D·3D 렌더러와 길이 계산이 같은 경로를 쓴다.
@@ -35,7 +42,7 @@ export function routeCable(
   const corridorY = corridorLevel(deskHeight, desk)
   const corridorZ = desk.tray?.z ?? desk.d - 120
   const backZ = desk.d - 40
-  const hole = desk.cableHole
+  const hole = cableHoleCenter(desk)
 
   const aTop = isAboveDesktop(a, index, deskHeight, pa, desk)
   const bTop = isAboveDesktop(b, index, deskHeight, pb, desk)
@@ -92,10 +99,10 @@ function descend(
   fromTop: boolean,
   corridorY: number,
   corridorZ: number,
-  hole: Desk['cableHole'],
+  hole: { x: number; z: number } | undefined,
 ): Point[] {
   if (fromTop && hole) {
-    // 축을 따라 배선홀까지 간 다음 수직으로 내려간다. 대각선으로 상판을 가로지르지 않게.
+    // 축을 따라 배선홈까지 간 다음 수직으로 내려간다. 대각선으로 상판을 가로지르지 않게.
     return [
       { x: hole.x, y: p.y, z: p.z },
       { x: hole.x, y: p.y, z: hole.z },

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { desk, devices, plannedDevices } from '../data/setup'
 import { absoluteY, indexDevices } from './mount'
-import { corridorLevel, routeCable, routeLength } from './route'
+import { cableHoleCenter, corridorLevel, routeCable, routeLength } from './route'
 
 const dIndex = indexDevices([...devices, ...plannedDevices])
 const H = 710
@@ -25,13 +25,16 @@ describe('배선 경로', () => {
     expect(desk.cableHole).toBeDefined()
   })
 
-  it('배선홀은 트레이 뒷판 중앙의 노치다 — 상판에 뚫린 구멍이 아니다', () => {
+  it('배선홈은 상판 뒷변 중앙이 파인 것이다 — 트레이 뒷판이 아니다', () => {
     const hole = desk.cableHole!
-    const tray = desk.tray!
     expect(hole.verified).toBe(true)
-    expect(hole.x).toBe(tray.x) // 중앙
-    expect(hole.z).toBeGreaterThan(tray.z) // 트레이 뒷판 쪽
-    expect(hole.z).toBeLessThanOrEqual(tray.z + tray.d)
+    expect(hole.x).toBe(desk.w / 2) // 중앙
+    expect(hole.depth).toBeGreaterThan(0)
+    expect(hole.depth).toBeLessThan(desk.d / 2) // 상판을 가로지르지는 않는다
+    // 홈의 중심은 상판 뒷변 바로 안쪽
+    const center = cableHoleCenter(desk)!
+    expect(center.z).toBe(desk.d - hole.depth / 2)
+    expect(center.z).toBeGreaterThan(desk.d - hole.depth)
   })
 
   it('모니터는 좌측 30% 후면 클램프의 모니터암을 따라 높이가 정해진다', () => {
@@ -44,9 +47,9 @@ describe('배선 경로', () => {
     expect(absoluteY('monitor', H, dIndex)).toBe(absoluteY('arm', H, dIndex) + arm.dims.h)
   })
 
-  it('받침대가 트레이 뒷판 노치보다 앞에 있다', () => {
+  it('받침대가 상판 배선홈보다 앞에 있다', () => {
     const stand = dIndex.get('stand')!
-    expect(stand.pos.z + stand.dims.d / 2).toBeLessThan(desk.cableHole!.z)
+    expect(stand.pos.z + stand.dims.d / 2).toBeLessThan(desk.d - desk.cableHole!.depth)
   })
 
   it('멀티탭이 트레이 안에 들어간다', () => {
@@ -57,11 +60,12 @@ describe('배선 경로', () => {
     expect(strip.pos.yOff).toBe(-(desk.thickness + tray.h))
   })
 
-  it('경계를 넘는 케이블은 배선홀을 거쳐 트레이 높이로 내려간다', () => {
+  it('경계를 넘는 케이블은 배선홈을 거쳐 트레이 높이로 내려간다', () => {
     const path = routeCable('pc', 'stand', H, dIndex, desk)
     const corridorY = corridorLevel(H, desk)
+    const center = cableHoleCenter(desk)!
     expect(path.some((p) => Math.abs(p.y - corridorY) < 1)).toBe(true)
-    expect(path.some((p) => p.x === desk.cableHole!.x)).toBe(true)
+    expect(path.some((p) => p.x === center.x && Math.abs(p.z - center.z) < 1)).toBe(true)
   })
 
   it('모든 구간이 축을 따라 꺾인다', () => {
