@@ -4,8 +4,9 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import type { Cable, Desk, Device, DeviceId } from '../data/types'
 import { absoluteCenter, indexDevices, lineageOf } from '../model/mount'
 import { indexPorts, ownerOf, routeOptsFor } from '../model/derive'
-import { cableHoleCenter, routeCable } from '../model/route'
-import { connectorOf } from '../data/setup'
+import { grooveCut, grooveOutline, routeCable } from '../model/route'
+import { cableDrawPath, laneOf } from '../model/cableDraw'
+import { cableDiameterOf, connectorOf } from '../data/setup'
 import { buildDevice } from './deviceShapes'
 
 interface Props {
@@ -262,15 +263,19 @@ export function Scene3D({
       content.add(rear)
     }
 
-    // 배선홈 표시 — 상판 뒷변에 파인 자리
-    const holeCenter = cableHoleCenter(desk)
-    if (holeCenter && desk.cableHole) {
+    // 배선홈 표시 — 상판이 실제로 파인 윤곽을 그대로 따라간다.
+    // 상판 셰이프와 같은 곡선을 쓰므로 표시선이 홈에서 어긋나지 않는다.
+    const outline = grooveOutline(desk)
+    if (outline.length >= 2) {
+      const path = new THREE.CatmullRomCurve3(
+        outline.map((p) => new THREE.Vector3(p.x, deskHeight + 2, sz(p.z, desk.d))),
+        false,
+        'centripetal',
+      )
       const mark = new THREE.Mesh(
-        new THREE.TorusGeometry(desk.cableHole.w * 0.3, 5, 8, 28, Math.PI),
+        new THREE.TubeGeometry(path, outline.length * 2, 4, 8, false),
         new THREE.MeshBasicMaterial({ color: 0x3fc4d4 }),
       )
-      mark.rotation.x = -Math.PI / 2
-      mark.position.set(holeCenter.x, deskHeight + 3, sz(holeCenter.z, desk.d))
       content.add(mark)
     }
 
@@ -311,23 +316,31 @@ export function Scene3D({
       }
     }
 
-    // 케이블 — 기기 중심을 잇는 맨해튼 경로를 그대로 3D 로 그린다.
+    // 케이블 — 길이 계산과 같은 뼈대 경로를 쓰되, 그릴 때만 다듬는다.
+    // 몸통 표면에서 시작하고, 겹치는 가닥을 나누고, 모서리를 굽힘 반경만큼 둥글린다.
     for (const cab of cables) {
       const a = ownerOf(cab.from, ports, index)
       const b = ownerOf(cab.to, ports, index)
       if (!a || !b) continue
       const active = activeCableIds.has(cab.id)
-      // 길이 계산과 똑같은 경로를 그린다. 화면과 숫자가 어긋나지 않게.
-      const pts = routeCable(a, b, deskHeight, index, desk, routeOptsFor(cab)).map(
-        (p) => new THREE.Vector3(p.x, p.y, sz(p.z, desk.d)),
-      )
+      const route = routeCable(a, b, deskHeight, index, desk, routeOptsFor(cab))
+      const drawn = cableDrawPath(route, {
+        from: index.get(a)?.dims,
+        to: index.get(b)?.dims,
+        lane: laneOf(cab.id),
+      })
+      const pts = drawn.map((p) => new THREE.Vector3(p.x, p.y, sz(p.z, desk.d)))
       if (pts.length < 2) continue
-      const curve = new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.18)
+      // 이미 촘촘한 폴리라인이라 centripetal 로 이으면 경로에서 벗어나지 않는다.
+      const curve = new THREE.CatmullRomCurve3(pts, false, 'centripetal')
+      // 굵기는 커넥터별 실제 외경을 따른다 — 전원선과 USB 가 같은 굵기로 보이지 않게.
+      // mm 그대로 그리면 씬 크기에 묻히므로 비율은 유지한 채 확대한다.
+      const radius = (cableDiameterOf(cab.type) / 2) * (active ? 2.6 : 1.3)
       const tube = new THREE.Mesh(
-        new THREE.TubeGeometry(curve, Math.max(64, pts.length * 18), active ? 8 : 4.5, 6, false),
+        new THREE.TubeGeometry(curve, Math.min(600, Math.max(96, pts.length * 3)), radius, 12, false),
         new THREE.MeshStandardMaterial({
           color: new THREE.Color(connectorOf(cab.type).color),
-          roughness: 0.6,
+          roughness: 0.55,
           transparent: !active,
           opacity: active ? 1 : 0.22,
         }),
@@ -347,15 +360,11 @@ export function Scene3D({
  */
 function desktopGeometry(desk: Desk): THREE.BufferGeometry {
   const shape = new THREE.Shape()
-  const hole = desk.cableHole
   shape.moveTo(0, 0)
-  if (hole) {
-    const half = Math.min(hole.w, desk.w * 0.9) / 2
-    const cut = Math.min(hole.depth, desk.d * 0.5)
-    shape.lineTo(hole.x - half, 0)
-    // 완만하게 파고들었다 다시 나오는 홈
-    shape.bezierCurveTo(hole.x - half * 0.45, 0, hole.x - half * 0.45, cut, hole.x, cut)
-    shape.bezierCurveTo(hole.x + half * 0.45, cut, hole.x + half * 0.45, 0, hole.x + half, 0)
+  // 홈 곡선은 route.ts 가 정의한 것 하나만 쓴다. 셰이프 좌표는 뒷변이 0 이므로 z 를 뒤집는다.
+  const outline = grooveOutline(desk)
+  if (outline.length >= 2 && grooveCut(desk) > 0) {
+    for (const p of outline) shape.lineTo(p.x, desk.d - p.z)
   }
   shape.lineTo(desk.w, 0)
   shape.lineTo(desk.w, desk.d)

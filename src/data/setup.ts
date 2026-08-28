@@ -20,10 +20,18 @@ export const plannedDevices: Device[] = data.plannedDevices.map((d) => ({ ...d, 
  * connectorTypes 에 없는 타입(전원 등)의 폴백.
  * data.json 을 고치지 않고 UI에서만 메운다 — 데이터는 사용자의 조사 결과다.
  */
-export const FALLBACK_CONNECTOR = { label: '전원', color: '#7a8288' }
+export const FALLBACK_CONNECTOR = { label: '전원', color: '#7a8288', dia: 7.5 }
 
 export function connectorOf(type: string) {
   return connectorTypes[type] ?? FALLBACK_CONNECTOR
+}
+
+/** 기본 외경(mm). dia 가 없는 타입은 흔한 신호선 굵기로 본다. */
+const DEFAULT_DIA = 5
+
+/** 그 커넥터 케이블의 외경(mm). 화면에서 선 굵기를 구분하는 데만 쓴다. */
+export function cableDiameterOf(type: string): number {
+  return connectorOf(type).dia ?? DEFAULT_DIA
 }
 
 export function allDevices(includePlanned: boolean): Device[] {

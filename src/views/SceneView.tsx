@@ -3,8 +3,9 @@ import type { Cable, Desk, Device, DeviceId } from '../data/types'
 import { extentFor, project, unproject, type View } from '../model/geometry'
 import { absoluteCenter, absoluteY, indexDevices, lineageOf } from '../model/mount'
 import { indexPorts, ownerOf, routeOptsFor } from '../model/derive'
-import { routeCable } from '../model/route'
-import { connectorOf } from '../data/setup'
+import { grooveOutline, routeCable } from '../model/route'
+import { cableDrawPath, laneOf } from '../model/cableDraw'
+import { cableDiameterOf, connectorOf } from '../data/setup'
 
 interface Props {
   view: View
@@ -102,20 +103,27 @@ export function SceneView({
         const a = ownerOf(c.from, ports, index)
         const b = ownerOf(c.to, ports, index)
         if (!a || !b) return null
-        // 3D·길이 계산과 같은 경로를 투영해서 그린다.
-        const pts = routeCable(a, b, deskHeight, index, desk, routeOptsFor(c)).map((p) => {
+        // 3D 와 완전히 같은 경로·같은 다듬기를 거친 뒤 투영만 다르게 한다.
+        const route = routeCable(a, b, deskHeight, index, desk, routeOptsFor(c))
+        const pts = cableDrawPath(route, {
+          from: index.get(a)?.dims,
+          to: index.get(b)?.dims,
+          lane: laneOf(c.id),
+        }).map((p) => {
           const q = project(p, view)
           return toScreen(q.u, q.v)
         })
         if (pts.length < 2) return null
         const active = activeCableIds.has(c.id)
+        // 굵기는 커넥터별 외경을 따른다 — 전원선과 USB 를 굵기로 구분할 수 있게.
+        const dia = cableDiameterOf(c.type)
         return (
           <path
             key={c.id}
-            d={pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.sx} ${p.sy}`).join(' ')}
+            d={svgPath(pts)}
             fill="none"
             stroke={connectorOf(c.type).color}
-            strokeWidth={active ? 9 : 5}
+            strokeWidth={active ? dia * 1.6 : dia * 0.8}
             strokeOpacity={active ? 0.95 : 0.16}
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -182,6 +190,17 @@ function shortName(name: string): string {
   return name.replace(/\s*\(.*$/, '')
 }
 
+/** 점 목록을 SVG 폴리라인으로. 좌표는 mm 단위라 소수점은 잘라도 무방하다. */
+function svgPath(pts: { sx: number; sy: number }[]): string {
+  return pts
+    .map((p, i) => `${i === 0 ? 'M' : 'L'} ${round(p.sx)} ${round(p.sy)}`)
+    .join(' ')
+}
+
+function round(n: number): number {
+  return Math.round(n * 10) / 10
+}
+
 interface BoxT {
   u0: number
   v0: number
@@ -217,14 +236,19 @@ function DeskShape({
   toScreen: ToScreen
 }) {
   if (view === 'top') {
-    const a = toScreen(0, 0)
-    const b = toScreen(desk.w, desk.d)
+    // 위에서 보면 뒷변에 파인 배선홈이 보인다. 3D 상판과 같은 곡선을 쓴다.
+    const outline = grooveOutline(desk)
+    const ring: { x: number; z: number }[] = [
+      { x: 0, z: 0 },
+      { x: desk.w, z: 0 },
+      { x: desk.w, z: desk.d },
+      ...[...outline].reverse(),
+      { x: 0, z: desk.d },
+    ]
+    const pts = ring.map((p) => toScreen(p.x, p.z))
     return (
-      <rect
-        x={Math.min(a.sx, b.sx)}
-        y={Math.min(a.sy, b.sy)}
-        width={desk.w}
-        height={desk.d}
+      <path
+        d={`${svgPath(pts)} Z`}
         fill="var(--desk-fill)"
         stroke="var(--desk-stroke)"
         strokeWidth={4}

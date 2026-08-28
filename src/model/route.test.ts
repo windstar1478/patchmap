@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { desk, devices, plannedDevices } from '../data/setup'
 import { absoluteY, indexDevices } from './mount'
-import { cableHoleCenter, corridorLevel, routeCable, routeLength } from './route'
+import { cableHoleCenter, corridorLevel, grooveOutline, routeCable, routeLength } from './route'
 
 const dIndex = indexDevices([...devices, ...plannedDevices])
 const H = 710
@@ -35,6 +35,33 @@ describe('배선 경로', () => {
     const center = cableHoleCenter(desk)!
     expect(center.z).toBe(desk.d - hole.depth / 2)
     expect(center.z).toBeGreaterThan(desk.d - hole.depth)
+  })
+
+  it('배선홈 가로 폭은 상판 폭의 1/5~1/4 이다', () => {
+    const hole = desk.cableHole!
+    expect(hole.w).toBeGreaterThanOrEqual(desk.w / 5)
+    expect(hole.w).toBeLessThanOrEqual(desk.w / 4)
+  })
+
+  it('배선홈은 뒷변의 얕은 홈이다 — 상판을 깊게 자르지 않는다', () => {
+    const hole = desk.cableHole!
+    expect(hole.depth).toBeGreaterThan(desk.d * 0.05)
+    expect(hole.depth).toBeLessThan(desk.d * 0.12)
+    // 폭이 깊이보다 훨씬 넓은, 옆으로 퍼진 홈이다.
+    expect(hole.w).toBeGreaterThan(hole.depth * 3)
+  })
+
+  it('홈 윤곽선은 뒷변에서 나가 뒷변으로 돌아오고, 폭·깊이가 데이터와 맞는다', () => {
+    const hole = desk.cableHole!
+    const outline = grooveOutline(desk)
+    expect(outline.length).toBeGreaterThan(8)
+    expect(outline[0]!.z).toBeCloseTo(desk.d, 6)
+    expect(outline.at(-1)!.z).toBeCloseTo(desk.d, 6)
+    expect(outline[0]!.x).toBeCloseTo(hole.x - hole.w / 2, 6)
+    expect(outline.at(-1)!.x).toBeCloseTo(hole.x + hole.w / 2, 6)
+    // 가장 깊이 파고든 지점이 곧 홈의 깊이다.
+    const deepest = Math.min(...outline.map((p) => p.z))
+    expect(desk.d - deepest).toBeCloseTo(hole.depth, 6)
   })
 
   it('모니터는 좌측 30% 후면 클램프의 모니터암을 따라 높이가 정해진다', () => {

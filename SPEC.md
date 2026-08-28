@@ -86,7 +86,9 @@ Vite + React + TypeScript. 렌더링은 **SVG** (Canvas 아님 — 객체가 적
 ```
 src/
   data/          devices.ts, cables.ts, scenarios.ts  ← data.json에서 로드
-  model/         mount.ts, geometry.ts, derive.ts     ← 순수 함수, 테스트 대상
+  model/         mount.ts, geometry.ts, derive.ts,
+                 route.ts(배선 경로·배선홈), cableDraw.ts(표시용 선 다듬기)
+                                                      ← 순수 함수, 테스트 대상
   views/         SceneView.tsx (view prop 하나로 3뷰), Device.tsx, Cable.tsx
   panels/        CableTable.tsx, ScenarioPanel.tsx, LoadPanel.tsx, DeviceList.tsx
   store.ts

@@ -11,6 +11,67 @@ export function cableHoleCenter(desk: Desk): { x: number; z: number } | undefine
 }
 
 /**
+ * 배선홈의 윤곽선. 상판 뒷변(z = desk.d)에서 앞으로 완만하게 파고들었다 다시 나온다.
+ *
+ * 상판 셰이프를 깎는 쪽과 홈을 표시하는 쪽이 각자 곡선을 그리면 서로 어긋난다.
+ * 여기서 한 번만 정의하고 2D·3D 가 같은 선을 쓴다.
+ */
+export function grooveOutline(desk: Desk, steps = 20): { x: number; z: number }[] {
+  const hole = desk.cableHole
+  if (!hole) return []
+  const half = grooveHalfWidth(desk)
+  const cut = grooveCut(desk)
+  const backZ = desk.d
+  const innerZ = desk.d - cut
+  const pull = half * 0.45
+
+  const left = cubic(
+    { x: hole.x - half, z: backZ },
+    { x: hole.x - pull, z: backZ },
+    { x: hole.x - pull, z: innerZ },
+    { x: hole.x, z: innerZ },
+    steps,
+  )
+  const right = cubic(
+    { x: hole.x, z: innerZ },
+    { x: hole.x + pull, z: innerZ },
+    { x: hole.x + pull, z: backZ },
+    { x: hole.x + half, z: backZ },
+    steps,
+  )
+  return [...left, ...right.slice(1)]
+}
+
+/** 홈의 반폭. 상판을 잘라 먹지 않게 막아 둔다. */
+export function grooveHalfWidth(desk: Desk): number {
+  return Math.min(desk.cableHole?.w ?? 0, desk.w * 0.9) / 2
+}
+
+/** 홈이 앞으로 파고든 깊이. 상판을 가로지르지 않게 막아 둔다. */
+export function grooveCut(desk: Desk): number {
+  return Math.min(desk.cableHole?.depth ?? 0, desk.d * 0.5)
+}
+
+type P2 = { x: number; z: number }
+
+function cubic(p0: P2, c0: P2, c1: P2, p1: P2, steps: number): P2[] {
+  const out: P2[] = []
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps
+    const u = 1 - t
+    const a = u * u * u
+    const b = 3 * u * u * t
+    const c = 3 * u * t * t
+    const d = t * t * t
+    out.push({
+      x: a * p0.x + b * c0.x + c * c1.x + d * p1.x,
+      z: a * p0.z + b * c0.z + c * c1.z + d * p1.z,
+    })
+  }
+  return out
+}
+
+/**
  * 케이블이 실제로 지나가는 경로.
  *
  * 직선으로 이으면 다른 기기를 관통한다. 실제로는 이렇게 간다:

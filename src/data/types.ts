@@ -107,7 +107,7 @@ export interface Tray {
 export interface CableHole {
   /** 홈 중심의 좌우 위치 */
   x: number
-  /** 홈의 가로 폭 */
+  /** 홈의 가로 폭. 상판 폭의 1/5~1/4 정도 파여 있다. */
   w: number
   /** 상판 뒷변에서 앞쪽으로 파고든 깊이 */
   depth: number
@@ -135,6 +135,11 @@ export interface Desk {
 export interface ConnectorTypeDef {
   label: string
   color: string
+  /**
+   * 케이블 외경(mm) 추정값. 화면에서 선 굵기를 구분하는 표시용이다.
+   * 길이·하중 계산에는 쓰지 않는다.
+   */
+  dia?: number
 }
 
 export interface OpenQuestion {
